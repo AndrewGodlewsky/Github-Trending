@@ -10,12 +10,15 @@ Writes today's (UTC) rows into `snapshots` (dense) and upserts `repos`.
 """
 from __future__ import annotations
 
+import logging
 import time
 from datetime import datetime, timezone
 
 import httpx
 
 from .db import connect, init_db
+
+log = logging.getLogger("github_trending.ingest")
 
 API = "https://api.github.com"
 CAP = 900          # keep each band comfortably under the 1,000-result ceiling
@@ -24,16 +27,19 @@ SEARCH_RPM = 28    # just under the 30/min Search-API limit
 
 
 class _Rate:
-    """Simple pacer: never issue Search requests faster than SEARCH_RPM."""
+    """Simple pacer: never issue Search requests faster than SEARCH_RPM.
+    Also counts every request issued (wait() is called once per request)."""
     def __init__(self, rpm: int) -> None:
         self.interval = 60.0 / rpm
         self.last = 0.0
+        self.count = 0
 
     def wait(self) -> None:
         gap = time.monotonic() - self.last
         if gap < self.interval:
             time.sleep(self.interval - gap)
         self.last = time.monotonic()
+        self.count += 1
 
 
 def _client(token: str) -> httpx.Client:
@@ -78,16 +84,28 @@ def _count(client: httpx.Client, rate: _Rate, low: int, high: int | None) -> int
 
 
 def _next_high(client: httpx.Client, rate: _Rate, low: int, ceiling: int) -> int:
-    """Largest HIGH ≤ ceiling with count(low..HIGH) ≤ CAP (binary search)."""
+    """Largest HIGH ≤ ceiling with count(low..HIGH) ≤ CAP.
+
+    Exponential search to bracket the band, then binary search *within that small
+    bracket* — so probes per band scale with the band's width, not with `ceiling`.
+    (The old version binary-searched from `ceiling`=1e6 every time, ~20 probes/band.)
+    """
     if _count(client, rate, low, ceiling) <= CAP:
-        return ceiling
-    lo, hi = low, ceiling
-    while lo < hi:
-        mid = (lo + hi + 1) // 2
+        return ceiling  # everything remaining fits in one band
+    # grow a window from `low` until it holds > CAP repos (or hits the ceiling)
+    step = max(1, low // 50)
+    hi = min(ceiling, low + step)
+    while hi < ceiling and _count(client, rate, low, hi) <= CAP:
+        step *= 2
+        hi = min(ceiling, low + step)
+    # binary search in [low, hi] for the largest high with count(low..high) ≤ CAP
+    lo, hi2 = low, hi
+    while lo < hi2:
+        mid = (lo + hi2 + 1) // 2
         if _count(client, rate, low, mid) <= CAP:
             lo = mid
         else:
-            hi = mid - 1
+            hi2 = mid - 1
     return lo
 
 
@@ -133,7 +151,7 @@ def sweep(con, token: str, min_stars: int = 500, ceiling: int | None = None,
     """
     today = datetime.now(timezone.utc).date()
     rate = _Rate(SEARCH_RPM)
-    seen, bands, requests = 0, 0, 0
+    seen, bands = 0, 0
     with _client(token) as client:
         top = ceiling if ceiling is not None else 1_000_000  # star ceiling; 1M > any repo
         low = min_stars
@@ -141,13 +159,10 @@ def sweep(con, token: str, min_stars: int = 500, ceiling: int | None = None,
             if max_bands is not None and bands >= max_bands:
                 break
             high = _next_high(client, rate, low, top)
-            requests += 1
             total = _count(client, rate, low, high)
-            requests += 1
             pages = min(10, -(-total // PER_PAGE))  # ceil, capped at 10
             for page in range(1, pages + 1):
                 data = _search(client, rate, f"stars:{low}..{high}", page)
-                requests += 1
                 items = data.get("items", [])
                 if not items:
                     break
@@ -155,11 +170,13 @@ def sweep(con, token: str, min_stars: int = 500, ceiling: int | None = None,
                 _upsert(con, snaps, repos)
                 seen += len(items)
             bands += 1
+            if bands % 25 == 0:
+                log.info("ingest progress: %d bands · %d repos · %d requests (at stars≥%d)",
+                         bands, seen, rate.count, low)
             low = high + 1
             if ceiling is None and _count(client, rate, low, None) == 0:
-                requests += 1
                 break
-    stats = {"run_date": today, "repos_seen": seen, "bands": bands, "requests": requests}
+    stats = {"run_date": today, "repos_seen": seen, "bands": bands, "requests": rate.count}
     if mark_run:
         con.execute("""
             INSERT INTO runs (run_date, started_at, finished_at, status, repos_seen, bucket_count)
