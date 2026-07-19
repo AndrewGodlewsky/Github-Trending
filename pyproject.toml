@@ -1,0 +1,14 @@
+[project]
+name = "github-trending"
+version = "0.1.0"
+description = "Daily trending GitHub repositories — data pipeline + static site"
+requires-python = ">=3.12"
+# Deps grow per build phase. Phase 0–2 need only these; httpx (Phase 3) and
+# google-genai (Phase 5) get added when those phases land — ponytail: no dep before its use.
+dependencies = [
+    "duckdb>=1.5",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv]
+package = false

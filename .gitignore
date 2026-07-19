@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets — never commit tokens
+.env
+
+# DuckDB database (regenerable from ingest + backfill)
+*.duckdb
+*.duckdb.wal
+*.duckdb.tmp/
+
+# Generated site data artifact
+/site/data/*.json
+/site/data/archive/
