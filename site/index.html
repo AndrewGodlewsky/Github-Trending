@@ -35,6 +35,9 @@
   .mark .glyph { color:var(--star); font-size:26px; line-height:1; transform:translateY(1px); }
   .mark h1 { font-size:25px; margin:0; letter-spacing:-.03em; font-weight:800; }
   .date { font-family:var(--mono); font-size:12.5px; color:var(--haze); letter-spacing:.02em; }
+  .topright { display:flex; align-items:center; gap:14px; }
+  .about { font-family:var(--mono); font-size:12px; color:var(--haze); text-decoration:none; padding:5px 11px; border:1px solid var(--line); border-radius:8px; white-space:nowrap; }
+  .about:hover { color:var(--signal); border-color:color-mix(in srgb, var(--signal) 40%, var(--line)); }
   .thesis { margin:2px 0 22px; color:var(--haze); font-size:15.5px; max-width:60ch; text-wrap:balance; }
   .thesis b { color:var(--paper); font-weight:600; }
 
@@ -114,7 +117,7 @@
   <header>
     <div class="top">
       <div class="mark"><span class="glyph">★</span><h1>Starling</h1></div>
-      <div class="date" id="date">—</div>
+      <div class="topright"><a class="about" href="about.html">How it works</a><span class="date" id="date">—</span></div>
     </div>
     <p class="thesis">What open source is <b>starring</b> right now — the repositories gaining stars fastest, each with a plain-language line on what it actually does.</p>
     <div class="tabs" role="tablist" aria-label="Trend window">
@@ -130,7 +133,7 @@
     <span class="k"><span class="sw" style="background:var(--signal)"></span> velocity — % stars gained (ranked by this)</span>
     <span class="k"><span class="sw" style="background:var(--star)"></span> volume — stars added &amp; current total</span>
   </div>
-  <p class="foot" id="foot">Updated daily. Data: <a id="ghlink" href="https://github.com" rel="noopener">GitHub</a> · summaries by Gemini.</p>
+  <p class="foot" id="foot"><a href="about.html">How trending is calculated</a> · updated daily · summaries by Gemini · <a href="https://github.com/AndrewGodlewsky/Github-Trending" rel="noopener">source</a></p>
 </div>
 
 <script>

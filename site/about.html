@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How trending is calculated · Starling</title>
+<style>
+  :root {
+    --ink:#0E1230; --surface:#161B42; --surface-2:#1F2657; --line:#2B3266;
+    --paper:#EDEFFF; --haze:#9BA2D0; --faint:#6B72A6;
+    --star:#FFC24B; --signal:#4FE0C0; --hot:#FF7A5C;
+    --mono: ui-monospace,"Cascadia Code","SF Mono","Segoe UI Mono",Consolas,monospace;
+    --sans: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 14px 34px -22px rgba(0,0,0,.7);
+  }
+  @media (prefers-color-scheme:light){ :root{
+    --ink:#F5F5FB;--surface:#FFFFFF;--surface-2:#F1F2FA;--line:#E4E5F3;--paper:#1A1F44;--haze:#5B6291;--faint:#8A90BC;
+    --star:#C9821F;--signal:#0FA891;--hot:#E15A3C;--shadow:0 1px 2px rgba(26,31,68,.06),0 14px 34px -22px rgba(26,31,68,.3);
+  }}
+  :root[data-theme="dark"]{ color-scheme:dark; --ink:#0E1230;--surface:#161B42;--surface-2:#1F2657;--line:#2B3266;--paper:#EDEFFF;--haze:#9BA2D0;--faint:#6B72A6;--star:#FFC24B;--signal:#4FE0C0;--hot:#FF7A5C; }
+  :root[data-theme="light"]{ color-scheme:light; --ink:#F5F5FB;--surface:#FFFFFF;--surface-2:#F1F2FA;--line:#E4E5F3;--paper:#1A1F44;--haze:#5B6291;--faint:#8A90BC;--star:#C9821F;--signal:#0FA891;--hot:#E15A3C; }
+
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--ink); color:var(--paper); font-family:var(--sans); line-height:1.62; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:720px; margin:0 auto; padding:0 22px 90px; }
+
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:28px 0 6px; }
+  .back{ font-family:var(--mono); font-size:13px; color:var(--haze); text-decoration:none; }
+  .back:hover{ color:var(--signal); }
+  .brand{ display:flex; align-items:center; gap:8px; font-weight:800; letter-spacing:-.02em; }
+  .brand .g{ color:var(--star); }
+
+  .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--signal); margin-top:26px; }
+  h1{ font-size:31px; margin:8px 0 0; letter-spacing:-.03em; font-weight:800; text-wrap:balance; }
+  .lead{ color:var(--paper); font-size:17px; margin:14px 0 0; max-width:60ch; }
+  h2{ font-size:20px; margin:42px 0 8px; letter-spacing:-.02em; }
+  p{ color:var(--haze); font-size:15.5px; margin:12px 0; max-width:66ch; }
+  strong{ color:var(--paper); font-weight:650; }
+  a{ color:var(--signal); }
+  code{ font-family:var(--mono); font-size:.88em; background:var(--surface-2); color:var(--paper); padding:1px 6px; border-radius:5px; }
+
+  /* symbol legend */
+  .legend{ display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:16px 0; padding:14px 16px; background:var(--surface); border:1px solid var(--line); border-radius:12px; font-size:14px; }
+  .legend .sym{ font-family:var(--mono); font-weight:700; }
+  .legend .d{ color:var(--haze); }
+  .s-now{ color:var(--star); } .s-base{ color:var(--star); opacity:.72; } .s-pct{ color:var(--signal); } .s-abs{ color:var(--star); } .s-days{ color:var(--faint); }
+
+  /* formula card */
+  .formula{ background:var(--ink); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:16px 0; overflow-x:auto; box-shadow:var(--shadow); }
+  .formula .eq{ font-family:var(--mono); font-size:16px; white-space:nowrap; }
+  .formula .cap{ color:var(--faint); font-family:var(--mono); font-size:11.5px; margin-top:8px; }
+
+  /* table */
+  table{ width:100%; border-collapse:collapse; margin:16px 0; font-size:14.5px; display:block; overflow-x:auto; }
+  th,td{ text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th{ font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); font-weight:600; }
+  td.mono{ font-family:var(--mono); }
+
+  .note{ border-left:3px solid var(--signal); background:var(--surface); border-radius:0 10px 10px 0; padding:12px 16px; margin:18px 0; font-size:14.5px; color:var(--haze); }
+  .note.gold{ border-left-color:var(--star); }
+  .note b{ color:var(--paper); }
+
+  ol.steps{ counter-reset:s; list-style:none; padding:0; margin:16px 0; }
+  ol.steps li{ position:relative; padding:10px 0 10px 40px; border-bottom:1px solid var(--line); color:var(--haze); font-size:15px; max-width:66ch; }
+  ol.steps li::before{ counter-increment:s; content:counter(s); position:absolute; left:0; top:9px; width:26px; height:26px; border-radius:8px; background:var(--surface-2); border:1px solid var(--line); color:var(--signal); font-family:var(--mono); font-size:13px; display:grid; place-items:center; }
+  ol.steps li b{ color:var(--paper); }
+
+  .foot{ margin-top:40px; padding-top:20px; border-top:1px solid var(--line); color:var(--faint); font-size:13px; }
+  .foot a{ color:var(--haze); }
+  @media (max-width:560px){ h1{ font-size:25px; } .formula .eq{ white-space:normal; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="g">★</span> Starling</div>
+    <a class="back" href="index.html">← Back to the board</a>
+  </div>
+
+  <div class="eyebrow">About · the method</div>
+  <h1>How a repo becomes "trending"</h1>
+  <p class="lead">Starling doesn't guess. Every repository on the board earned its place through the same arithmetic, applied identically to every repo, every day. Here's exactly how it works — the whole calculation, with the math.</p>
+
+  <h2>The raw material: one snapshot a day</h2>
+  <p>Once a day, Starling records the star count of <strong>every public GitHub repository with at least 500 stars</strong> — roughly 120,000 of them. Over time this builds a daily history for each repo. "Trending" is entirely a question of how that number changed, so everything below is built from these daily snapshots.</p>
+  <p>The <strong>500-star floor</strong> matters: it filters out tiny repos where a handful of stars would look like explosive percentage growth. Every repo compared is already established.</p>
+
+  <h2>The symbols</h2>
+  <div class="legend">
+    <span class="sym s-now">S_now</span><span class="d">the repo's star count <strong>today</strong> (the latest completed crawl)</span>
+    <span class="sym s-base">S_base</span><span class="d">its star count at the <strong>start of the window</strong></span>
+    <span class="sym s-abs">A</span><span class="d">absolute gain — stars added</span>
+    <span class="sym s-pct">P</span><span class="d">percentage gain — the growth <em>rate</em></span>
+    <span class="sym s-days">d</span><span class="d">the actual number of days between the two snapshots</span>
+  </div>
+
+  <h2>Three windows</h2>
+  <p>The same repo is judged over three time spans, so a slow-burn climber and an overnight sensation both get surfaced. Each window looks back a fixed number of days (<span class="s-days">L</span>):</p>
+  <table>
+    <tr><th>Window</th><th>Looks back (L)</th></tr>
+    <tr><td>Today</td><td class="mono">1 day</td></tr>
+    <tr><td>This week</td><td class="mono">7 days</td></tr>
+    <tr><td>This month</td><td class="mono">30 days</td></tr>
+  </table>
+
+  <h2>Two measures of the rise</h2>
+  <p>For each repo and each window, Starling computes two numbers — how many stars it added, and how fast that is relative to its size:</p>
+  <div class="formula">
+    <div class="eq"><span class="s-abs">A</span> = <span class="s-now">S_now</span> − <span class="s-base">S_base</span></div>
+    <div class="cap">absolute gain — stars added over the window</div>
+  </div>
+  <div class="formula">
+    <div class="eq"><span class="s-pct">P</span> = ( <span class="s-now">S_now</span> − <span class="s-base">S_base</span> ) / <span class="s-base">S_base</span></div>
+    <div class="cap">percentage gain — the growth rate</div>
+  </div>
+  <p><strong>Percentage is the star of the show.</strong> A repo going 500 → 650 (<span class="s-pct">+30%</span>) is more genuinely "trending" than one going 50,000 → 53,000 (<span class="s-pct">+6%</span>), even though the second added more stars. Ranking by percentage surfaces the <em>risers</em>, not the giants.</p>
+
+  <h2>The eligibility gate</h2>
+  <p>Percentage alone is noisy, so a repo has to clear <strong>both</strong> a percentage bar and an absolute-stars bar to qualify — a real rate of growth <em>and</em> a real number of stars. The two bars per window:</p>
+  <div class="formula">
+    <div class="eq"><span class="s-abs">A</span> ≥ <span class="s-abs">A_min</span>   <span style="color:var(--faint)">and</span>   <span class="s-pct">P</span> ≥ <span class="s-pct">P_min</span></div>
+    <div class="cap">a repo appears only if BOTH conditions hold</div>
+  </div>
+  <table>
+    <tr><th>Window</th><th>Min stars gained (A_min)</th><th>Min growth (P_min)</th></tr>
+    <tr><td>Today</td><td class="mono s-abs">15</td><td class="mono s-pct">1%</td></tr>
+    <tr><td>This week</td><td class="mono s-abs">75</td><td class="mono s-pct">5%</td></tr>
+    <tr><td>This month</td><td class="mono s-abs">200</td><td class="mono s-pct">12%</td></tr>
+  </table>
+
+  <h2>Ranking the qualifiers</h2>
+  <p>Every repo that clears the gate is ranked, and the <strong>top 50</strong> in each window make the board. The ranking score is the percentage gain — with one adjustment for the daily window:</p>
+  <div class="formula">
+    <div class="eq"><span style="color:var(--faint)">week / month:</span>   score = <span class="s-pct">P</span></div>
+    <div class="eq" style="margin-top:8px"><span style="color:var(--faint)">day:</span>   score = <span class="s-pct">P</span> / max( <span class="s-days">d</span>, 1 )</div>
+    <div class="cap">the day window divides by elapsed days, so a multi-day catch-up isn't mistaken for a one-day spike</div>
+  </div>
+  <p>Ties are broken by absolute gain (<span class="s-abs">A</span>), then by current star count (<span class="s-now">S_now</span>).</p>
+
+  <h2>A worked example</h2>
+  <p>Take <code>bojieli/ai-agent-book</code> on a recent day — the actual #1 on the daily board:</p>
+  <div class="formula">
+    <div class="eq"><span class="s-now">S_now</span> = 3,463      <span class="s-base">S_base</span> = 2,392      <span class="s-days">d</span> = 1</div>
+    <div class="eq" style="margin-top:10px"><span class="s-abs">A</span> = 3,463 − 2,392 = <span class="s-abs">1,071 stars</span></div>
+    <div class="eq" style="margin-top:6px"><span class="s-pct">P</span> = 1,071 / 2,392 = 0.4477 = <span class="s-pct">44.8%</span></div>
+    <div class="eq" style="margin-top:6px">gate: 1,071 ≥ 15 ✓   and   44.8% ≥ 1% ✓   →   <span style="color:var(--signal)">qualifies</span></div>
+    <div class="eq" style="margin-top:6px">score = 0.4477 / max(1, 1) = <span class="s-pct">0.4477</span>   →   ranked <strong>#1</strong> that day</div>
+  </div>
+
+  <h2>Handling the messiness of real data</h2>
+  <p>Snapshots aren't always perfectly regular. Three rules keep the math honest:</p>
+  <ul>
+    <li><strong>Missing days.</strong> <span class="s-base">S_base</span> is defined as "the star count on the most recent complete crawl <em>at or before</em> the window's edge." If a day was skipped, the baseline is simply a little older — and <span class="s-days">d</span> records the true gap. Nothing breaks.</li>
+    <li><strong>Partial crawls.</strong> A day where the crawl didn't finish is flagged and never used as a baseline, so an incomplete day can't invent a fake drop.</li>
+    <li><strong>Brand-new repos.</strong> A repo that only just crossed 500 stars has no earlier snapshot to compare against, so it's held out of a window until it has real history — no phantom "infinite growth."</li>
+  </ul>
+
+  <h2>The whole thing, start to finish</h2>
+  <ol class="steps">
+    <li>Take today's star count for every repo (<span class="s-now">S_now</span>).</li>
+    <li>For each window, find its baseline (<span class="s-base">S_base</span>) — the latest complete snapshot at or before <span class="s-days">L</span> days ago.</li>
+    <li>Compute the absolute gain <span class="s-abs">A</span> and the percentage gain <span class="s-pct">P</span>.</li>
+    <li>Keep only repos where <b>both</b> <span class="s-abs">A ≥ A_min</span> and <span class="s-pct">P ≥ P_min</span>.</li>
+    <li>Rank the survivors by score, take the <b>top 50</b>, and show them.</li>
+  </ol>
+
+  <div class="note gold"><b>These numbers are calibrated, not carved in stone.</b> The thresholds above are sensible starting points, tuned as real data accumulates — so the exact bars may shift over time as the definition of "trending" is sharpened against what the data actually looks like.</div>
+
+  <div class="foot">
+    ★ Starling · <a href="index.html">back to the board</a> · summaries written by Google Gemini from each repo's README · <a href="https://github.com/AndrewGodlewsky/Github-Trending" rel="noopener">source on GitHub</a>
+  </div>
+</div>
+</body>
+</html>
