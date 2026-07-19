@@ -11,8 +11,8 @@ __pycache__/
 *.duckdb.wal
 *.duckdb.tmp/
 
-# Generated site data artifact
-/site/data/*.json
+# Generated site data — latest.json IS tracked so Cloudflare Pages (connected to
+# this GitHub repo) can serve it; the dated archive stays local to avoid repo bloat.
 /site/data/archive/
 
 # Run logs (regenerable; also keeps any future log output out of git)

@@ -46,7 +46,7 @@ Six stages run in order each night; each hands its output to the next. Every sta
                                                         │
                                         assemble.py ──► site/data/latest.json
                                                         │
-                          orchestrate.py ──► wrangler ──► Cloudflare Pages (site/)
+                        orchestrate.py ──► git push ──► GitHub ──► Cloudflare Pages
 ```
 
 | Stage | Module | What it does |
@@ -56,7 +56,7 @@ Six stages run in order each night; each hands its output to the next. Every sta
 | Rank | `trending.py` | Uses DuckDB **ASOF joins** — "compare to the latest snapshot at/before N days ago" — so missing days don't break the math. |
 | Summarize | `summarize.py` | Gemini `flash-lite` writes a paragraph per trending repo; cached by README version, so re-runs are free. |
 | Assemble | `assemble.py` | Writes `latest.json` — the contract the website reads (3 windows × 50 repos + summaries + sparklines). |
-| Publish | `orchestrate.py` | Sequences all of the above, then uploads `site/` via `wrangler`. Publish is **last & gated on success** — a failed run keeps yesterday's site and alerts Discord. |
+| Publish | `orchestrate.py` | Sequences all of the above, then commits + pushes `latest.json`; **Cloudflare Pages (connected to this GitHub repo) auto-deploys on push.** Publish is **last & gated on success** — a failed run keeps yesterday's site and alerts Discord. |
 
 ## The data model
 
@@ -170,7 +170,6 @@ All settings come from `.env` (copy from `.env.example`). Secrets are read at ca
 | `GITHUB_TOKEN` | Ingest + README fetch | public-repo read is enough |
 | `GOOGLE_API_KEY` | Gemini summaries | from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 | `ALERT_WEBHOOK_URL` | Failure alerts | Discord webhook — see [`docs/discord-webhook.md`](docs/discord-webhook.md) |
-| `CLOUDFLARE_PAGES_PROJECT` | Publishing | leave blank to build without deploying |
 | `DATA_DIR` | Backfill | path to the seed CSVs (defaults to `../data`) |
 | `DB_PATH` | Everything | DuckDB file (defaults to `github_trending.duckdb`) |
 

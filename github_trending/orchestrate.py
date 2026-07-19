@@ -46,15 +46,18 @@ def _trending_union(con, top_n: int) -> list[dict]:
     return list(seen.values())
 
 
-def _publish(site_dir: Path, project: str | None) -> None:
-    if not project:
-        log.info("CLOUDFLARE_PAGES_PROJECT not set — skipping deploy; site built at %s", site_dir)
+def _publish(as_of: str) -> None:
+    """Publish = commit + push latest.json. Cloudflare Pages is connected to this
+    GitHub repo (production branch `main`, output dir `site`), so it auto-deploys
+    on push. No Wrangler / no direct upload — GitHub is the deploy trigger.
+    """
+    subprocess.run(["git", "add", "site/data/latest.json"], check=True)
+    if subprocess.run(["git", "diff", "--cached", "--quiet"]).returncode == 0:
+        log.info("latest.json unchanged — nothing to publish")
         return
-    log.info("publishing %s to Cloudflare Pages project '%s'", site_dir, project)
-    subprocess.run(
-        ["wrangler", "pages", "deploy", str(site_dir), "--project-name", project],
-        check=True,
-    )
+    subprocess.run(["git", "commit", "-m", f"data: trending update {as_of}"], check=True)
+    subprocess.run(["git", "push"], check=True)
+    log.info("pushed latest.json — Cloudflare Pages will redeploy")
 
 
 def run_daily(cfg: Config, *, skip_ingest: bool = False, publish: bool = True,
@@ -84,7 +87,7 @@ def run_daily(cfg: Config, *, skip_ingest: bool = False, publish: bool = True,
         assemble.write_artifact(payload, site_dir / "data")
 
         if publish:
-            _publish(site_dir, cfg.cloudflare_pages_project)
+            _publish(payload["as_of"])
 
         log.info("daily run complete for %s (as_of=%s)", today, payload["as_of"])
         return {"ok": True, "as_of": payload["as_of"], "summaries": stats}
