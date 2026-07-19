@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starling architecture — Getting the data</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topnav"><div class="inner">
+  <a class="brand" href="index.html"><span class="g">★</span> Starling</a>
+  <nav>
+    <a class="lnk" href="index.html">Overview</a>
+    <a class="lnk" href="01-ingestion.html" aria-current="page">Ingestion</a>
+    <a class="lnk" href="02-database.html">Database</a>
+    <a class="lnk" href="03-trending.html">Trending</a>
+    <a class="lnk" href="04-summaries.html">Summaries</a>
+    <a class="lnk" href="05-website.html">Website</a>
+    <a class="lnk" href="06-operations.html">Operations</a>
+  </nav>
+</div></div>
+
+<div class="wrap">
+  <div class="eyebrow">01 · Ingestion</div>
+  <h1>Getting the data</h1>
+  <p class="lead">Starling needs one number for every popular repo, every day: its star count. Data arrives two ways — a <strong>live daily crawl</strong> of GitHub, and a <strong>one-time backfill</strong> of history you already had.</p>
+
+  <h2>The live crawl <span style="color:var(--faint);font-weight:400;font-size:15px">(module: <code>ingest.py</code>)</span></h2>
+  <p>Once a day, Starling asks GitHub's Search API for every repository with 500 or more stars. There's a catch that shapes the whole design:</p>
+  <ul>
+    <li>The Search API returns at most <strong>1,000 results per query</strong>.</li>
+    <li>It allows only about <strong>30 requests per minute</strong>.</li>
+    <li>There are roughly <strong>120,000</strong> repos over the 500-star line.</li>
+  </ul>
+  <p>So you can't just ask for "all repos ≥500★." Instead, Starling slices the range into <strong>star bands</strong> — <code>stars:500..512</code>, <code>stars:513..528</code>, and so on — each narrow enough to hold fewer than 1,000 repos, then pages through each band. It figures out where to draw each band automatically by probing the counts.</p>
+
+  <div class="flow">
+    <div class="box accent"><div class="t">GitHub Search API</div><div class="d">stars:500..N</div></div>
+    <div class="arr">→</div>
+    <div class="box"><div class="t">~300–500 star bands</div><div class="d">each &lt; 1,000 results</div></div>
+    <div class="arr">→</div>
+    <div class="box"><div class="t">today's snapshot</div><div class="d">→ DuckDB</div></div>
+  </div>
+
+  <div class="note why"><b>A nice shortcut:</b> each search result already includes the star count, so a single crawl produces a complete snapshot of all ~120k repos with <em>zero</em> extra per-repo calls.</div>
+
+  <p>Because of the rate limits, a full crawl takes about <strong>2–3 hours</strong> — GitHub deliberately throttles heavy searching. That's fine for an unattended nightly job, and it's exactly why Starling runs on a schedule rather than on demand. If the crawl is interrupted, it can resume from the band it reached rather than starting over.</p>
+
+  <h2>The history backfill <span style="color:var(--faint);font-weight:400;font-size:15px">(module: <code>backfill.py</code>)</span></h2>
+  <p>Trends need history: "week over week" needs 7 days of data, "month over month" needs ~30. Starting from scratch would mean a blank first month. But you already had <strong>~9 weeks of daily CSV snapshots</strong> sitting in a <code>data/</code> folder — so those were loaded once, giving full trends from day one.</p>
+  <dl class="kv">
+    <dt>loaded</dt><dd>120,641 repos, one row per repo per day</dd>
+    <dt>span</dt><dd>2026-05-17 → 2026-07-18 (contiguous)</dd>
+    <dt>cleaning</dt><dd>de-duplicated rows, dropped one corrupted day, flagged two partial days</dd>
+  </dl>
+  <p>The live crawl then simply continues from where the history ends — today's snapshot lands after July 18, and every day after that.</p>
+
+  <div class="note"><b>Two sources, one shape.</b> Both the crawl and the backfill write into the same <code>snapshots</code> table, so from that point on the rest of the system doesn't care where a given day came from.</div>
+
+  <div class="pager">
+    <a href="index.html">← Overview</a>
+    <span class="spacer"></span>
+    <a href="02-database.html">Next → Where it lives</a>
+  </div>
+</div>
+</body>
+</html>

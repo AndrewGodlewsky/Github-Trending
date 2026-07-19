@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starling architecture — Overview</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topnav"><div class="inner">
+  <a class="brand" href="index.html"><span class="g">★</span> Starling</a>
+  <nav>
+    <a class="lnk" href="index.html" aria-current="page">Overview</a>
+    <a class="lnk" href="01-ingestion.html">Ingestion</a>
+    <a class="lnk" href="02-database.html">Database</a>
+    <a class="lnk" href="03-trending.html">Trending</a>
+    <a class="lnk" href="04-summaries.html">Summaries</a>
+    <a class="lnk" href="05-website.html">Website</a>
+    <a class="lnk" href="06-operations.html">Operations</a>
+  </nav>
+</div></div>
+
+<div class="wrap">
+  <div class="eyebrow">Architecture · Overview</div>
+  <h1>How Starling works</h1>
+  <p class="lead">Starling is a <strong>nightly batch job that runs on your PC</strong>. Once a day it takes a snapshot of every popular GitHub repository, works out which ones are gaining stars fastest, writes a plain-language summary of each, and publishes a small file that a website reads. That's the whole system.</p>
+
+  <p>Everything heavy — a database of ~120,000 repos and weeks of history — stays on your machine. Only a tiny result (a few hundred repos with their summaries, ~140 KB) ever goes to the internet. The public site is just static files reading that one result.</p>
+
+  <h2>The daily loop</h2>
+  <p>Every night, six stages run in order. Each hands its output to the next:</p>
+
+  <div class="flow vert">
+    <div class="box accent"><div class="t">1 · Ingest</div><div class="d">crawl GitHub → today's star counts</div></div>
+    <div class="arr">↓</div>
+    <div class="box"><div class="t">2 · Store</div><div class="d">save the snapshot in DuckDB</div></div>
+    <div class="arr">↓</div>
+    <div class="box"><div class="t">3 · Rank</div><div class="d">compute day / week / month risers</div></div>
+    <div class="arr">↓</div>
+    <div class="box gold"><div class="t">4 · Summarize</div><div class="d">Gemini explains each new riser</div></div>
+    <div class="arr">↓</div>
+    <div class="box"><div class="t">5 · Assemble</div><div class="d">write latest.json</div></div>
+    <div class="arr">↓</div>
+    <div class="box accent"><div class="t">6 · Publish</div><div class="d">upload the site to Cloudflare</div></div>
+  </div>
+
+  <div class="note"><b>The golden rule:</b> publishing is the <em>last</em> step, and only happens if every earlier step succeeded. If anything breaks, the live site simply keeps yesterday's data and you get a Discord alert — a stale-but-correct site beats a fresh-but-broken one.</div>
+
+  <h2>The pieces, in one place</h2>
+  <p>Each stage is one small Python module. Click through for a plain-English explanation of each:</p>
+
+  <div class="grid">
+    <a class="card" href="01-ingestion.html"><div class="n">01</div><div class="h">Getting the data</div><div class="p">The live GitHub crawl and the one-time history backfill.</div></a>
+    <a class="card" href="02-database.html"><div class="n">02</div><div class="h">Where it lives</div><div class="p">DuckDB and the four tables that hold everything.</div></a>
+    <a class="card" href="03-trending.html"><div class="n">03</div><div class="h">Finding what's trending</div><div class="p">How "rising fastest" is actually measured.</div></a>
+    <a class="card" href="04-summaries.html"><div class="n">04</div><div class="h">Explaining repos</div><div class="p">How Gemini turns a README into one clear paragraph.</div></a>
+    <a class="card" href="05-website.html"><div class="n">05</div><div class="h">Showing it</div><div class="p">The published file and the static website.</div></a>
+    <a class="card" href="06-operations.html"><div class="n">06</div><div class="h">Running it daily</div><div class="p">Scheduling, secrets, failures, and alerts.</div></a>
+  </div>
+
+  <h2>The stack at a glance</h2>
+  <dl class="kv">
+    <dt>language</dt><dd>Python 3.14 (managed with <code>uv</code>)</dd>
+    <dt>database</dt><dd>DuckDB — a single local file, no server</dd>
+    <dt>data source</dt><dd>GitHub REST Search API + a seeded CSV history</dd>
+    <dt>summaries</dt><dd>Google Gemini (<code>gemini-2.5-flash-lite</code>)</dd>
+    <dt>website</dt><dd>plain HTML/CSS/JS — no build step</dd>
+    <dt>hosting</dt><dd>Cloudflare Pages (static)</dd>
+    <dt>schedule</dt><dd>Windows Task Scheduler, once a day</dd>
+    <dt>alerts</dt><dd>Discord webhook on failure</dd>
+  </dl>
+
+  <div class="note why"><b>Why this shape?</b> The design keeps the expensive, private part (the full database) on your machine and makes the public part as simple as possible — static files. That means no server to run, no database exposed to the internet, and near-zero hosting cost.</div>
+
+  <div class="pager">
+    <span class="spacer"></span>
+    <a href="01-ingestion.html">Next → Getting the data</a>
+  </div>
+  <p class="foot">★ Starling architecture guide · high-level, plain-English. Deeper detail lives in the code and in the planning workspace's <code>.scratch/github-trending/</code>.</p>
+</div>
+</body>
+</html>

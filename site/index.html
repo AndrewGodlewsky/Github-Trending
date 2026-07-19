@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starling — trending GitHub repositories</title>
+<style>
+  :root {
+    --ink: #0E1230; --surface: #161B42; --surface-2: #1F2657; --line: #2B3266;
+    --paper: #EDEFFF; --haze: #9BA2D0; --faint: #6B72A6;
+    --star: #FFC24B; --signal: #4FE0C0; --hot: #FF7A5C;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", "Segoe UI Mono", Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --card-shadow: 0 1px 0 rgba(255,255,255,.03), 0 12px 30px -18px rgba(0,0,0,.7);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ink: #F5F5FB; --surface: #FFFFFF; --surface-2: #F0F1FA; --line: #E4E5F3;
+      --paper: #1A1F44; --haze: #5B6291; --faint: #8A90BC;
+      --star: #C9821F; --signal: #0FA891; --hot: #E15A3C;
+      --card-shadow: 0 1px 2px rgba(26,31,68,.06), 0 14px 34px -22px rgba(26,31,68,.35);
+    }
+  }
+  :root[data-theme="dark"] { color-scheme: dark;
+    --ink:#0E1230;--surface:#161B42;--surface-2:#1F2657;--line:#2B3266;--paper:#EDEFFF;--haze:#9BA2D0;--faint:#6B72A6;--star:#FFC24B;--signal:#4FE0C0;--hot:#FF7A5C; }
+  :root[data-theme="light"] { color-scheme: light;
+    --ink:#F5F5FB;--surface:#FFFFFF;--surface-2:#F0F1FA;--line:#E4E5F3;--paper:#1A1F44;--haze:#5B6291;--faint:#8A90BC;--star:#C9821F;--signal:#0FA891;--hot:#E15A3C; }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--ink); color:var(--paper); font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:980px; margin:0 auto; padding:0 20px 80px; }
+
+  .top { display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:40px 0 8px; }
+  .mark { display:flex; align-items:center; gap:10px; }
+  .mark .glyph { color:var(--star); font-size:26px; line-height:1; transform:translateY(1px); }
+  .mark h1 { font-size:25px; margin:0; letter-spacing:-.03em; font-weight:800; }
+  .date { font-family:var(--mono); font-size:12.5px; color:var(--haze); letter-spacing:.02em; }
+  .thesis { margin:2px 0 22px; color:var(--haze); font-size:15.5px; max-width:60ch; text-wrap:balance; }
+  .thesis b { color:var(--paper); font-weight:600; }
+
+  .tabs { display:inline-flex; gap:2px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:4px; position:sticky; top:12px; z-index:5; box-shadow:var(--card-shadow); }
+  .tab { appearance:none; border:0; background:transparent; color:var(--haze); cursor:pointer; font-family:var(--mono); font-size:12.5px; letter-spacing:.02em; padding:8px 16px; border-radius:9px; display:flex; align-items:baseline; gap:8px; transition:background .18s,color .18s; }
+  .tab .n { font-size:10px; color:var(--faint); }
+  .tab[aria-selected="true"] { background:var(--surface-2); color:var(--paper); }
+  .tab[aria-selected="true"] .n { color:var(--signal); }
+  .tab:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
+  .barline { height:1px; background:var(--line); margin:22px 0 8px; }
+  .windowmeta { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-family:var(--mono); font-size:11.5px; color:var(--faint); margin-bottom:14px; letter-spacing:.02em; }
+
+  .board { display:flex; flex-direction:column; gap:10px; }
+  .row { display:grid; grid-template-columns:34px 42px 1fr auto; gap:16px; align-items:start; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; box-shadow:var(--card-shadow); transition:transform .18s,border-color .18s; }
+  .row:hover { transform:translateY(-2px); border-color:color-mix(in srgb, var(--signal) 40%, var(--line)); }
+  .row.lead { grid-template-columns:34px 52px 1fr auto; padding:22px 20px; border-color:color-mix(in srgb, var(--hot) 45%, var(--line)); background:linear-gradient(180deg, color-mix(in srgb, var(--hot) 7%, var(--surface)), var(--surface)); }
+
+  .rank { font-family:var(--mono); font-size:15px; color:var(--faint); padding-top:4px; font-variant-numeric:tabular-nums; }
+  .row.lead .rank { color:var(--hot); font-size:17px; }
+
+  .avatar { position:relative; width:42px; height:42px; border-radius:11px; display:grid; place-items:center; overflow:hidden; font-family:var(--mono); font-weight:700; font-size:16px; color:var(--paper); background:var(--surface-2); border:1.5px solid var(--lang, var(--line)); }
+  .row.lead .avatar { width:52px; height:52px; font-size:20px; }
+  .avatar img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+
+  .meta { min-width:0; }
+  .namerow { display:flex; align-items:baseline; gap:7px; flex-wrap:wrap; }
+  .namerow a { text-decoration:none; }
+  .owner { color:var(--haze); font-size:14.5px; } .slash { color:var(--faint); }
+  .name { color:var(--paper); font-weight:700; font-size:16.5px; letter-spacing:-.01em; }
+  .namerow a:hover .name { color:var(--signal); }
+  .row.lead .name { font-size:19px; }
+  .summary { color:var(--haze); font-size:13.7px; margin:7px 0 10px; max-width:62ch; }
+  .summary.fallback { color:var(--faint); font-style:italic; }
+  .chips { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .lang { display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--haze); }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--lang, var(--faint)); }
+  .topic { font-family:var(--mono); font-size:10.5px; color:var(--faint); border:1px solid var(--line); border-radius:6px; padding:2px 7px; }
+
+  .mom { display:grid; grid-template-columns:auto 120px; gap:4px 18px; align-items:center; justify-items:end; }
+  .pct { grid-column:1; font-family:var(--mono); font-weight:700; font-size:24px; color:var(--signal); letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1; }
+  .row.lead .pct { font-size:30px; }
+  .spark { grid-column:2; grid-row:1 / span 2; }
+  .substat { grid-column:1; display:flex; align-items:baseline; gap:12px; font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums; }
+  .stars { color:var(--star); } .stars .s { opacity:.85; }
+  .gain { color:var(--star); opacity:.82; }
+  .span { color:var(--faint); font-size:10.5px; }
+
+  svg.trend { display:block; overflow:visible; }
+  svg.trend path.area { opacity:.18; }
+  svg.trend path.line { fill:none; stroke:var(--signal); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  svg.trend circle.end { fill:var(--signal); } svg.trend circle.halo { fill:var(--signal); opacity:.22; }
+
+  .legend { display:flex; gap:22px; flex-wrap:wrap; margin-top:26px; padding-top:18px; border-top:1px solid var(--line); font-family:var(--mono); font-size:11.5px; color:var(--haze); }
+  .legend .k { display:inline-flex; align-items:center; gap:8px; } .legend .sw { width:22px; height:3px; border-radius:2px; }
+  .foot { margin-top:18px; color:var(--faint); font-size:12px; } .foot a { color:var(--haze); }
+  .state { padding:48px 8px; text-align:center; color:var(--haze); font-family:var(--mono); font-size:13px; }
+
+  @media (max-width:680px) {
+    .row, .row.lead { grid-template-columns:26px 40px 1fr; }
+    .mom { grid-column:1 / -1; grid-template-columns:1fr auto; justify-items:start; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); }
+    .pct { grid-column:1; } .spark { grid-column:2; grid-row:1 / span 2; } .substat { grid-column:1; }
+  }
+  .row { opacity:0; transform:translateY(8px); }
+  .row.in { opacity:1; transform:translateY(0); transition:opacity .4s ease, transform .4s ease; }
+  .row:hover.in { transform:translateY(-2px); }
+  svg.trend path.line { stroke-dasharray:var(--len); stroke-dashoffset:var(--len); }
+  .row.in svg.trend path.line { animation:draw .9s ease forwards; }
+  @keyframes draw { to { stroke-dashoffset:0; } }
+  @media (prefers-reduced-motion:reduce) {
+    .row, .row.in { opacity:1; transform:none; transition:none; }
+    svg.trend path.line { stroke-dashoffset:0; animation:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top">
+      <div class="mark"><span class="glyph">★</span><h1>Starling</h1></div>
+      <div class="date" id="date">—</div>
+    </div>
+    <p class="thesis">What open source is <b>starring</b> right now — the repositories gaining stars fastest, each with a plain-language line on what it actually does.</p>
+    <div class="tabs" role="tablist" aria-label="Trend window">
+      <button class="tab" role="tab" aria-selected="true"  data-win="day">Today <span class="n">24h</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-win="week">This week <span class="n">7d</span></button>
+      <button class="tab" role="tab" aria-selected="false" data-win="month">This month <span class="n">30d</span></button>
+    </div>
+    <div class="barline"></div>
+    <div class="windowmeta"><span id="wlabel">—</span><span id="wcount"></span></div>
+  </header>
+  <main class="board" id="board" aria-live="polite"><div class="state">Loading trending repositories…</div></main>
+  <div class="legend">
+    <span class="k"><span class="sw" style="background:var(--signal)"></span> velocity — % stars gained (ranked by this)</span>
+    <span class="k"><span class="sw" style="background:var(--star)"></span> volume — stars added &amp; current total</span>
+  </div>
+  <p class="foot" id="foot">Updated daily. Data: <a id="ghlink" href="https://github.com" rel="noopener">GitHub</a> · summaries by Gemini.</p>
+</div>
+
+<script>
+  const LANG = { Rust:"#dea584", TypeScript:"#3178c6", Go:"#00ADD8", Python:"#3572A5", JavaScript:"#f1e05a",
+    Zig:"#ec915c", C:"#8a8a8a", "C++":"#f34b7d", "C#":"#178600", CSS:"#563d7c", Shell:"#89e051",
+    Swift:"#F05138", Java:"#b07219", Ruby:"#701516", Kotlin:"#A97BFF", HTML:"#e34c26" };
+  const WLABEL = { day:"vs. yesterday", week:"vs. 7 days ago", month:"vs. 30 days ago" };
+  const board = document.getElementById("board");
+  let DATA = null, current = "day";
+
+  const fmt = n => n.toLocaleString("en-US");
+  const initials = (o,n) => (n[0]+(n[1]||"")).toUpperCase();
+
+  function sparkSVG(pts){
+    if (!pts || pts.length < 2) return `<span class="span">new</span>`;
+    const W=120,H=36,pad=3, max=Math.max(...pts), min=Math.min(...pts), rng=(max-min)||1;
+    const x=i=>pad+(i/(pts.length-1))*(W-2*pad), y=v=>H-pad-((v-min)/rng)*(H-2*pad);
+    let d="M"+x(0)+" "+y(pts[0]); for(let i=1;i<pts.length;i++) d+=" L"+x(i)+" "+y(pts[i]);
+    const area=d+` L${x(pts.length-1)} ${H} L${x(0)} ${H} Z`, len=Math.round((W-2*pad)*1.25);
+    const ex=x(pts.length-1), ey=y(pts[pts.length-1]);
+    return `<svg class="trend" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="--len:${len}" aria-hidden="true">
+      <path class="area" d="${area}" fill="var(--signal)"></path><path class="line" d="${d}"></path>
+      <circle class="halo" cx="${ex}" cy="${ey}" r="4.5"></circle><circle class="end" cx="${ex}" cy="${ey}" r="2.4"></circle></svg>`;
+  }
+  const esc = s => (s||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  function render(win){
+    const w = DATA.windows[win];
+    document.getElementById("wlabel").textContent = WLABEL[win];
+    document.getElementById("wcount").textContent = w.count ? `top ${w.count} · since ${w.boundary_date}` : "";
+    board.innerHTML = "";
+    if (!w.repos.length){ board.innerHTML = `<div class="state">No repositories cleared the ${win} threshold today — check back tomorrow.</div>`; return; }
+    w.repos.forEach((r, idx) => {
+      const lc = LANG[r.language] || "var(--faint)";
+      const el = document.createElement("article");
+      el.className = "row" + (idx===0 ? " lead":"");
+      el.style.setProperty("--lang", lc);
+      const topics = (r.topics||[]).slice(0,3).map(t=>`<span class="topic">${esc(t)}</span>`).join("");
+      const spanNote = r.elapsed_days>1 ? `<span class="span">${r.elapsed_days}d span</span>` : "";
+      const body = r.summary ? `<p class="summary">${esc(r.summary)}</p>`
+                             : `<p class="summary fallback">${esc(r.description) || "Summary pending."}</p>`;
+      el.innerHTML = `
+        <div class="rank">${String(idx+1).padStart(2,"0")}</div>
+        <div class="avatar"><img src="${esc(r.avatar_url)}" alt="" loading="lazy" onerror="this.remove()"><span>${esc(initials(r.owner,r.name))}</span></div>
+        <div class="meta">
+          <div class="namerow"><a href="${esc(r.html_url)}" rel="noopener"><span class="owner">${esc(r.owner)}</span><span class="slash">/</span><span class="name">${esc(r.name)}</span></a></div>
+          ${body}
+          <div class="chips"><span class="lang"><span class="dot"></span>${esc(r.language)||"—"}</span>${topics}</div>
+        </div>
+        <div class="mom">
+          <div class="pct">+${(r.pct_gain*100).toFixed(r.pct_gain<0.1?1:0)}%</div>
+          ${sparkSVG(r.spark)}
+          <div class="substat"><span class="gain">+${fmt(r.abs_gain)}</span><span class="stars"><span class="s">★</span> ${fmt(r.stars)}</span>${spanNote}</div>
+        </div>`;
+      board.appendChild(el);
+      requestAnimationFrame(()=> setTimeout(()=> el.classList.add("in"), Math.min(idx,20)*45));
+    });
+  }
+
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+    if (t.dataset.win===current || !DATA) return;
+    document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x===t));
+    current = t.dataset.win; render(current);
+  }));
+
+  fetch("./data/latest.json", {cache:"no-cache"}).then(r => {
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }).then(d => {
+    DATA = d;
+    const gen = new Date(d.generated_at);
+    document.getElementById("date").textContent = gen.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+    render(current);
+  }).catch(err => {
+    board.innerHTML = `<div class="state">Couldn't load the latest data (${esc(String(err))}). It refreshes once a day — try again shortly.</div>`;
+  });
+</script>
+</body>
+</html>

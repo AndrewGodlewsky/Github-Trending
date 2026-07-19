@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starling architecture — Showing it</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topnav"><div class="inner">
+  <a class="brand" href="index.html"><span class="g">★</span> Starling</a>
+  <nav>
+    <a class="lnk" href="index.html">Overview</a>
+    <a class="lnk" href="01-ingestion.html">Ingestion</a>
+    <a class="lnk" href="02-database.html">Database</a>
+    <a class="lnk" href="03-trending.html">Trending</a>
+    <a class="lnk" href="04-summaries.html">Summaries</a>
+    <a class="lnk" href="05-website.html" aria-current="page">Website</a>
+    <a class="lnk" href="06-operations.html">Operations</a>
+  </nav>
+</div></div>
+
+<div class="wrap">
+  <div class="eyebrow">05 · Website</div>
+  <h1>Showing it</h1>
+  <p class="lead">The website is deliberately the <strong>simplest possible thing</strong>: a single static page that reads one small data file. There's no server and no database behind it — the heavy machine work already happened on your PC.</p>
+
+  <h2>The handoff file: <code>latest.json</code></h2>
+  <p>Between the pipeline and the website sits one file — a contract both sides agree on. The pipeline writes it; the website reads it. It's small (about <strong>140 KB</strong>) and holds everything the page needs:</p>
+  <dl class="kv">
+    <dt>three windows</dt><dd>day / week / month, each with its top 50 repos</dd>
+    <dt>per repo</dt><dd>name, stars, the gain, the Gemini summary, language, topics</dd>
+    <dt>a sparkline</dt><dd>the repo's last ~30 days of star counts, to draw its trajectory</dd>
+    <dt>a version</dt><dd>so the file's shape can evolve without breaking the site</dd>
+  </dl>
+
+  <div class="flow">
+    <div class="box"><div class="t">pipeline</div><div class="d">assemble.py</div></div>
+    <div class="arr">→</div>
+    <div class="box gold"><div class="t">latest.json</div><div class="d">the contract, ~140 KB</div></div>
+    <div class="arr">→</div>
+    <div class="box accent"><div class="t">the website</div><div class="d">reads &amp; renders it</div></div>
+  </div>
+
+  <h2>The page itself</h2>
+  <p>It's plain HTML, CSS, and a little JavaScript — <strong>no framework, no build step</strong>. When it loads, it fetches <code>latest.json</code> and draws the "momentum board": a ranked list per window, each repo showing its velocity, its summary, its language, and a little trajectory sparkline. Real GitHub avatars, light and dark themes, and it works on a phone.</p>
+
+  <div class="note why"><b>Why so simple?</b> Because the data is already computed. A static file loads instantly, costs nothing to host, can't be hacked (there's no server logic), and means your 2.6 GB of raw data never leaves your machine. Only the tiny result travels.</div>
+
+  <h2>Where it's hosted</h2>
+  <p>The page and its <code>latest.json</code> are uploaded to <strong>Cloudflare Pages</strong> — a free static host with a global network, so it loads fast anywhere. Each day's file is also saved as a dated copy in an <code>archive/</code> folder, which leaves the door open for history charts later without re-computing anything.</p>
+
+  <div class="pager">
+    <a href="04-summaries.html">← Explaining repos</a>
+    <span class="spacer"></span>
+    <a href="06-operations.html">Next → Running it daily</a>
+  </div>
+</div>
+</body>
+</html>

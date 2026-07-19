@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starling architecture — Finding what's trending</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topnav"><div class="inner">
+  <a class="brand" href="index.html"><span class="g">★</span> Starling</a>
+  <nav>
+    <a class="lnk" href="index.html">Overview</a>
+    <a class="lnk" href="01-ingestion.html">Ingestion</a>
+    <a class="lnk" href="02-database.html">Database</a>
+    <a class="lnk" href="03-trending.html" aria-current="page">Trending</a>
+    <a class="lnk" href="04-summaries.html">Summaries</a>
+    <a class="lnk" href="05-website.html">Website</a>
+    <a class="lnk" href="06-operations.html">Operations</a>
+  </nav>
+</div></div>
+
+<div class="wrap">
+  <div class="eyebrow">03 · Trending</div>
+  <h1>Finding what's trending</h1>
+  <p class="lead">This is the heart of the product — deciding what counts as "trending." Starling ranks repos by <strong>how fast they're gaining stars, in percentage terms</strong>, with a small guardrail so it isn't fooled by noise.</p>
+
+  <h2>The definition</h2>
+  <p>For each repo, in each time window, Starling looks at two things:</p>
+  <ul>
+    <li><strong>Percentage growth</strong> — a repo going 500 → 650 (+30%) is more "trending" than one going 50,000 → 53,000 (+6%), even though the second gained more stars. Percentage surfaces the risers, not the giants.</li>
+    <li><strong>A minimum absolute gain</strong> — but a repo can't sneak in on percentage alone. It also has to add a real number of stars, so a tiny wobble doesn't register as a trend.</li>
+  </ul>
+  <p>Repos that clear both bars are ranked by percentage, and the <strong>top 50</strong> in each window make the list.</p>
+
+  <h2>Three windows</h2>
+  <div class="flow">
+    <div class="box accent"><div class="t">Day</div><div class="d">today vs ~1 day ago</div></div>
+    <div class="arr">·</div>
+    <div class="box accent"><div class="t">Week</div><div class="d">today vs ~7 days ago</div></div>
+    <div class="arr">·</div>
+    <div class="box accent"><div class="t">Month</div><div class="d">today vs ~30 days ago</div></div>
+  </div>
+
+  <h2>The clever part: tolerating gaps</h2>
+  <p>What does "7 days ago" mean if the pipeline happened to miss a day that week? This is where DuckDB's <strong>ASOF join</strong> earns its place. Instead of demanding an exact date, Starling asks for <em>"the most recent snapshot at or before the window's edge."</em></p>
+  <div class="note"><b>In plain terms:</b> if last Tuesday's run was skipped, the week comparison just uses Monday's instead — automatically. A missed day makes the baseline a little older, not broken. Starling even notes the real elapsed days so a two-day catch-up isn't mistaken for a one-day spike.</div>
+
+  <h3>A couple of edge cases it handles</h3>
+  <ul>
+    <li><strong>Brand-new repos</strong> that just crossed 500 stars have no earlier snapshot to compare against, so they're held out of a window until there's a baseline — no fake "infinite growth."</li>
+    <li><strong>Partial days</strong> (flagged in the <code>runs</code> logbook) are never used as a comparison point, so an incomplete crawl can't invent phantom drops.</li>
+  </ul>
+
+  <h2>An example from real data</h2>
+  <p>On the day this was built, the top day-window riser was <code>bojieli/ai-agent-book</code> — up <strong>+1,071 stars (+45%)</strong> in 24 hours. The week list was led by repos more than tripling their stars. The month list surfaced repos that had gained tens of thousands. All computed from the same table with the same query, just different window sizes.</p>
+
+  <div class="note why"><b>Tunable, not fixed.</b> The exact thresholds live in one place (<code>WINDOWS</code> in <code>trending.py</code>). They start as sensible defaults and are meant to be nudged once you've watched a few days of real results — the code even reports the real distribution to guide you.</div>
+
+  <div class="pager">
+    <a href="02-database.html">← Where it lives</a>
+    <span class="spacer"></span>
+    <a href="04-summaries.html">Next → Explaining repos</a>
+  </div>
+</div>
+</body>
+</html>

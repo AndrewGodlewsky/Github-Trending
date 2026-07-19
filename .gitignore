@@ -14,3 +14,9 @@ __pycache__/
 # Generated site data artifact
 /site/data/*.json
 /site/data/archive/
+
+# Run logs (regenerable; also keeps any future log output out of git)
+logs/
+
+# Browser-automation scratch (if it ever appears)
+.playwright-mcp/

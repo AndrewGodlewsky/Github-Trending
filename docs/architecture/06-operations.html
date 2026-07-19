@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starling architecture — Running it daily</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topnav"><div class="inner">
+  <a class="brand" href="index.html"><span class="g">★</span> Starling</a>
+  <nav>
+    <a class="lnk" href="index.html">Overview</a>
+    <a class="lnk" href="01-ingestion.html">Ingestion</a>
+    <a class="lnk" href="02-database.html">Database</a>
+    <a class="lnk" href="03-trending.html">Trending</a>
+    <a class="lnk" href="04-summaries.html">Summaries</a>
+    <a class="lnk" href="05-website.html">Website</a>
+    <a class="lnk" href="06-operations.html" aria-current="page">Operations</a>
+  </nav>
+</div></div>
+
+<div class="wrap">
+  <div class="eyebrow">06 · Operations</div>
+  <h1>Running it daily</h1>
+  <p class="lead">One module, <code>orchestrate.py</code>, is the conductor. It runs the six stages in order, once a day, unattended — and it's built to fail safely.</p>
+
+  <h2>The nightly sequence</h2>
+  <div class="flow vert">
+    <div class="box"><div class="t">1 · ingest</div><div class="d">crawl → today's snapshot</div></div>
+    <div class="arr">↓</div>
+    <div class="box"><div class="t">2 · rank</div><div class="d">compute the three windows</div></div>
+    <div class="arr">↓</div>
+    <div class="box gold"><div class="t">3 · summarize</div><div class="d">only new trending repos</div></div>
+    <div class="arr">↓</div>
+    <div class="box"><div class="t">4 · assemble</div><div class="d">write latest.json</div></div>
+    <div class="arr">↓</div>
+    <div class="box accent"><div class="t">5 · publish</div><div class="d">upload to Cloudflare — last, and only if all above succeeded</div></div>
+  </div>
+
+  <h2>What makes it safe</h2>
+  <h3>Publish is last, and gated</h3>
+  <p>The live site is only updated at the very end, after every earlier step worked. If the crawl fails, or Gemini has a bad night, <strong>the site simply keeps yesterday's data.</strong> Visitors never see a half-computed or broken page.</p>
+
+  <h3>You hear about failures</h3>
+  <p>If a run fails, Starling posts a message to your <strong>Discord channel</strong> (via a webhook) so you know without checking logs. A successful ingest is still recorded as complete even if a later step failed — the day's snapshot is valid, only the publish didn't happen.</p>
+
+  <h3>It survives a sleeping laptop</h3>
+  <p>The job is registered with <strong>Windows Task Scheduler</strong> to run once a day. If the machine was asleep or off at that time, it runs as soon as it can afterward — producing a slightly late snapshot rather than a missing day (which, as you saw, the trend math tolerates anyway).</p>
+
+  <h2>Secrets</h2>
+  <p>Your GitHub and Google keys, and the Discord webhook, live in a <code>.env</code> file that is <strong>never committed to git and never printed to logs</strong>. The code reads them at the moment of each call and nowhere else.</p>
+
+  <div class="note"><b>The <code>runs</code> logbook ties it together.</b> It's what lets a crashed crawl resume where it stopped, what marks a day complete or partial, and what the trend math consults to decide which days to trust. One small table, doing quiet but essential work.</div>
+
+  <hr>
+  <p style="color:var(--faint);font-size:14px">That's the whole system — six small stages, one local database, and one tiny file that reaches the web. <a href="index.html">Back to the overview →</a></p>
+
+  <div class="pager">
+    <a href="05-website.html">← Showing it</a>
+    <span class="spacer"></span>
+    <a href="index.html">Overview ↑</a>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starling architecture — Where it lives</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topnav"><div class="inner">
+  <a class="brand" href="index.html"><span class="g">★</span> Starling</a>
+  <nav>
+    <a class="lnk" href="index.html">Overview</a>
+    <a class="lnk" href="01-ingestion.html">Ingestion</a>
+    <a class="lnk" href="02-database.html" aria-current="page">Database</a>
+    <a class="lnk" href="03-trending.html">Trending</a>
+    <a class="lnk" href="04-summaries.html">Summaries</a>
+    <a class="lnk" href="05-website.html">Website</a>
+    <a class="lnk" href="06-operations.html">Operations</a>
+  </nav>
+</div></div>
+
+<div class="wrap">
+  <div class="eyebrow">02 · Database</div>
+  <h1>Where it lives</h1>
+  <p class="lead">All the data sits in a single <strong>DuckDB</strong> file on your machine — <code>github_trending.duckdb</code>. No database server, no cloud, no setup. It's one file you could copy to a USB stick.</p>
+
+  <p>DuckDB is built for exactly this kind of work: lots of rows, and questions like "compare this to how it looked a week ago." It stores data by column, which makes those questions fast and keeps repeated values (like a star count that barely moves) tiny on disk.</p>
+
+  <h2>Four tables</h2>
+  <table class="tbl">
+    <tr><th>Table</th><th>What it holds</th><th>Think of it as…</th></tr>
+    <tr><td class="mono">repos</td><td>One row per repository: name, owner, language, description, topics.</td><td>The address book — who each repo <em>is</em>.</td></tr>
+    <tr><td class="mono">snapshots</td><td>One row per repo <em>per day</em>: its star count (plus forks, open issues).</td><td>The diary — the daily measurements.</td></tr>
+    <tr><td class="mono">summaries</td><td>The Gemini paragraph for a repo, with the README version it was written from.</td><td>The cache — write once, reuse.</td></tr>
+    <tr><td class="mono">runs</td><td>One row per day the pipeline ran, and whether it finished cleanly.</td><td>The logbook — which days are trustworthy.</td></tr>
+  </table>
+
+  <div class="flow vert">
+    <div class="box"><div class="t">repos</div><div class="d">repo_id, full_name, language, topics …</div></div>
+    <div class="arr">↓ one repo has many daily measurements</div>
+    <div class="box accent"><div class="t">snapshots</div><div class="d">(repo_id, date) → stars</div></div>
+  </div>
+
+  <h2>Two design choices worth knowing</h2>
+
+  <h3>Every repo, every day (even if unchanged)</h3>
+  <p>Starling stores a row for a repo <em>every</em> day, even when its star count didn't move. That sounds wasteful, but it's deliberate: it lets the system tell the difference between <strong>"stars held steady"</strong> and <strong>"we didn't run that day."</strong> If it only stored changes, a quiet repo and a missed day would look identical — and the trend math would break. Columnar storage makes those repeated rows almost free.</p>
+
+  <h3>The <code>runs</code> logbook</h3>
+  <p>A nightly crawl can be interrupted, or a day can be partial. The <code>runs</code> table records the outcome of each day (<code>complete</code>, <code>partial</code>, <code>failed</code>, <code>absent</code>). The trend calculations only trust <code>complete</code> days, so a bad night never poisons the results.</p>
+
+  <div class="note why"><b>Why DuckDB specifically?</b> It has a feature called an <em>ASOF join</em> — a way to ask "what was this repo's star count on the most recent day at or before a week ago?" That one feature makes the trend math both simple and robust to missing days. More on that next.</div>
+
+  <div class="pager">
+    <a href="01-ingestion.html">← Getting the data</a>
+    <span class="spacer"></span>
+    <a href="03-trending.html">Next → Finding what's trending</a>
+  </div>
+</div>
+</body>
+</html>

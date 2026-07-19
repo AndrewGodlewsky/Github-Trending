@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starling architecture — Explaining repos</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topnav"><div class="inner">
+  <a class="brand" href="index.html"><span class="g">★</span> Starling</a>
+  <nav>
+    <a class="lnk" href="index.html">Overview</a>
+    <a class="lnk" href="01-ingestion.html">Ingestion</a>
+    <a class="lnk" href="02-database.html">Database</a>
+    <a class="lnk" href="03-trending.html">Trending</a>
+    <a class="lnk" href="04-summaries.html" aria-current="page">Summaries</a>
+    <a class="lnk" href="05-website.html">Website</a>
+    <a class="lnk" href="06-operations.html">Operations</a>
+  </nav>
+</div></div>
+
+<div class="wrap">
+  <div class="eyebrow">04 · Summaries</div>
+  <h1>Explaining repos</h1>
+  <p class="lead">A repo name and a star count don't tell you what something <em>does</em>. So for every trending repo, Starling asks <strong>Google's Gemini</strong> to read the README and write one plain-language paragraph a non-expert can understand.</p>
+
+  <h2>Only where it matters</h2>
+  <p>Summaries are written only for the repos that actually make a trending list — a few hundred a day, not all 120,000. That's what keeps this step fast and essentially free.</p>
+
+  <div class="flow">
+    <div class="box"><div class="t">README + metadata</div><div class="d">fetched from GitHub</div></div>
+    <div class="arr">→</div>
+    <div class="box gold"><div class="t">Gemini flash-lite</div><div class="d">source-grounded prompt</div></div>
+    <div class="arr">→</div>
+    <div class="box"><div class="t">one paragraph</div><div class="d">→ cached in DuckDB</div></div>
+  </div>
+
+  <h2>The prompt is deliberately strict</h2>
+  <p>The instructions given to Gemini are the interesting part. It's told to:</p>
+  <ul>
+    <li>use <strong>only</strong> facts present in the README — invent nothing;</li>
+    <li>say plainly if the README doesn't make the purpose clear, rather than guess;</li>
+    <li>avoid jargon and marketing words ("powerful", "seamless");</li>
+    <li>write 2–4 sentences, present tense, and stop.</li>
+  </ul>
+  <p>The result reads like a knowledgeable friend explaining the project, not a product page. For example, one real output described a repo as <em>"a guide to free, ad-free resources for watching shows and movies… it automatically checks the validity of these resources daily."</em></p>
+
+  <h2>Write once, reuse forever</h2>
+  <p>Summarizing the same repo every night would be wasteful. So each summary is cached and tagged with the <strong>version of the README it was written from</strong> (a content fingerprint). On later runs, Starling only calls Gemini again if that README has actually changed.</p>
+
+  <div class="note why"><b>Why it's basically free:</b> a small, cheap model (<code>gemini-2.5-flash-lite</code>), only on trending repos, and cached after the first time. In testing, dozens of summaries cost a fraction of a cent and a re-run made <em>zero</em> API calls.</div>
+
+  <div class="pager">
+    <a href="03-trending.html">← Finding what's trending</a>
+    <span class="spacer"></span>
+    <a href="05-website.html">Next → Showing it</a>
+  </div>
+</div>
+</body>
+</html>

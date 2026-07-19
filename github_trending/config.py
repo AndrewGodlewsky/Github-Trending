@@ -22,6 +22,7 @@ class Config:
     github_token: str | None
     google_api_key: str | None
     alert_webhook_url: str | None
+    cloudflare_pages_project: str | None
 
 
 def load_config() -> Config:
@@ -31,6 +32,7 @@ def load_config() -> Config:
         github_token=os.getenv("GITHUB_TOKEN"),
         google_api_key=os.getenv("GOOGLE_API_KEY"),
         alert_webhook_url=os.getenv("ALERT_WEBHOOK_URL"),
+        cloudflare_pages_project=os.getenv("CLOUDFLARE_PAGES_PROJECT"),
     )
 
 
