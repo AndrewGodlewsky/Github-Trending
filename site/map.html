@@ -29,19 +29,40 @@
   .axis-title{fill:var(--muted); font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase;}
   .qline{stroke:var(--line); stroke-dasharray:3 4;}
   .qlabel{fill:var(--faint); font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;}
-  circle.bub{cursor:pointer; transition:stroke-width .1s; stroke-width:1.5;}
+  circle.bub{cursor:pointer; transition:stroke-width .1s, opacity .15s; stroke-width:1.5;}
   circle.bub:hover, circle.bub.on{stroke-width:3;}
+  circle.bub.dim{opacity:.07; pointer-events:none;}
+
+  .filters{display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin:12px 0 0;}
+  .filters .flabel{font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin-right:3px;}
+  .fchip{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:5px 10px; font-family:var(--mono); font-size:10.5px; color:var(--muted); cursor:pointer;}
+  .fchip:hover{border-color:var(--accent); color:var(--accent);}
+  .fchip[aria-pressed="true"]{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .fchip:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .fcount{font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-left:4px;}
+  .lb .row.hid{display:none;}
 
   .lb{padding:6px 8px 10px; max-height:560px; overflow:auto;}
   .lb .row{display:grid; grid-template-columns:26px 1fr auto; gap:10px; align-items:center; padding:9px 10px; border-radius:9px; cursor:pointer; text-align:left; width:100%; text-decoration:none; color:inherit;}
   .lb .row:hover, .lb .row.on{background:var(--paper);}
-  .lb .row:hover .nm b{color:var(--accent);}
-  .lb .row:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+  .lb .nm a{color:inherit; text-decoration:none;}
+  .lb .nm a:hover b{color:var(--accent); text-decoration:underline; text-underline-offset:2px;}
+  .lb .nm a:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px;}
   .lb .rk{font-family:var(--mono); font-size:12px; color:var(--faint); font-variant-numeric:tabular-nums;}
   .lb .nm{min-width:0;}
   .lb .nm b{font-family:var(--disp); font-weight:600; font-size:13.5px; letter-spacing:-.01em; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .lb .nm .l{font-family:var(--mono); font-size:10px; color:var(--muted); display:flex; align-items:center; gap:5px; margin-top:1px;}
   .lb .pct{font-family:var(--disp); font-weight:700; font-size:15px; color:var(--up); font-variant-numeric:tabular-nums;}
+
+  /* rich legend: worked size examples + language colors + axis meanings */
+  .legend{align-items:flex-start; gap:34px;}
+  .legend .lg .k{font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin-bottom:8px;}
+  .legend .lg svg{display:block; overflow:visible;}
+  .legend .lg svg text{fill:var(--muted); font-family:var(--mono); font-size:9.5px;}
+  .legend .lcs{display:flex; flex-wrap:wrap; gap:8px 14px; max-width:320px;}
+  .legend .lc{display:inline-flex; align-items:center; gap:6px;}
+  .legend .ax{margin-bottom:6px;}
+  .legend .ax b{color:var(--ink); font-weight:600;}
 
   @media (max-width:860px){ .deck{grid-template-columns:1fr;} }
 </style>
@@ -80,9 +101,10 @@
 
   <div id="mapPanel" role="tabpanel" aria-label="Movers map and leaderboard">
   <div class="tape" id="tape"></div>
+  <div class="filters" id="filters" aria-label="Language filter"></div>
   <div class="deck">
     <section class="panel"><div class="card-h"><h3>Movers map</h3><span class="hint">velocity × volume · bubble = stars added</span></div><div class="plot" id="plot"></div></section>
-    <aside class="panel"><div class="card-h"><h3>Leaderboard</h3><span class="hint">by velocity</span></div><div class="lb" id="lb"></div></aside>
+    <aside class="panel"><div class="card-h"><h3>Leaderboard</h3><span class="hint">by velocity · click a row to highlight</span></div><div class="lb" id="lb"></div></aside>
   </div>
   <div class="legend" id="legend"></div>
   </div>
@@ -159,19 +181,36 @@ S.load().then(function () {
 
     var ranked = reps.map(function (r, i) { return { r: r, i: i }; }).sort(function (a, b) { return b.r.pct_gain - a.r.pct_gain; });
     lb.innerHTML = ranked.map(function (o, k) { var r = o.r, c = S.langColor(r.language);
-      return '<a class="row" href="' + S.repoUrl(r) + '" target="_blank" rel="noopener" data-i="' + o.i + '">' +
+      return '<div class="row" data-i="' + o.i + '">' +
         '<span class="rk">' + String(k + 1).padStart(2, "0") + '</span>' +
-        '<span class="nm"><b>' + S.esc(r.name) + '</b><span class="l"><span class="dot" style="background:' + c + '"></span>' + S.esc(r.language || "—") + ' · +' + S.fmt(r.abs_gain) + '★</span></span>' +
-        '<span class="pct">▲' + S.pctOf(r.pct_gain) + '%</span></a>'; }).join("");
+        '<span class="nm"><a href="' + S.repoUrl(r) + '" target="_blank" rel="noopener"><b>' + S.esc(r.name) + '</b></a><span class="l"><span class="dot" style="background:' + c + '"></span>' + S.esc(r.language || "—") + ' · +' + S.fmt(r.abs_gain) + '★</span></span>' +
+        '<span class="pct">▲' + S.pctOf(r.pct_gain) + '%</span></div>'; }).join("");
 
+    // legend: real worked examples at the same scale the plot uses
+    var nice = function (v) { var p = Math.pow(10, Math.floor(Math.log10(Math.max(v, 1)))), m = v / p; return (m >= 5 ? 5 : m >= 2.5 ? 2.5 : m >= 2 ? 2 : 1) * p; };
+    var exAbs = [nice(maxAbs * 0.05), nice(maxAbs * 0.3), nice(maxAbs)].filter(function (v, ix, a) { return a.indexOf(v) === ix; });
+    var rmax = rS(exAbs[exAbs.length - 1]), pad = 3, gap = 26, x = pad, B = pad + 2 * rmax;
+    var sizeSvg = '<svg width="' + Math.ceil(exAbs.reduce(function (s, a) { return s + 2 * rS(a); }, 0) + gap * (exAbs.length - 1) + 2 * pad) + '" height="' + (B + 20) + '" aria-hidden="true">' +
+      exAbs.map(function (a) {
+        var r = rS(a), cx = x + r; x += 2 * r + gap;
+        return '<circle cx="' + cx.toFixed(1) + '" cy="' + (B - r).toFixed(1) + '" r="' + r.toFixed(1) + '" fill="var(--faint)" fill-opacity=".3" stroke="var(--muted)"/>' +
+          '<text x="' + cx.toFixed(1) + '" y="' + (B + 15) + '" text-anchor="middle">+' + tk(a) + '★</text>';
+      }).join("") + '</svg>';
+    var topLangs = Object.keys(byLang).filter(function (L) { return L !== "—"; }).sort(function (a, b) { return byLang[b] - byLang[a]; }).slice(0, 6);
     document.getElementById("legend").innerHTML =
-      '<span><i style="background:var(--up)"></i>velocity — % gained (Y)</span><span><i style="background:var(--amber)"></i>volume — total stars (X, log)</span><span>bubble area = stars added</span>';
+      '<div class="lg"><div class="k">Bubble size · stars added this window</div>' + sizeSvg + '</div>' +
+      '<div class="lg"><div class="k">Bubble color · language</div><div class="lcs">' +
+        topLangs.map(function (L) { return '<span class="lc"><span class="dot" style="background:' + S.langColor(L) + '"></span>' + S.esc(L) + '</span>'; }).join("") +
+        '<span class="lc"><span class="dot" style="background:#8A93A0"></span>other / unknown</span></div></div>' +
+      '<div class="lg"><div class="k">Axes</div><div class="ax">↑ <b>velocity</b> — % of its stars a repo gained this window</div><div class="ax">→ <b>volume</b> — total stars it has overall (log scale)</div></div>';
 
-    // sync
+    // sync: hover previews a repo; click pins the highlight (sel) until unpinned
     var bubs = [].slice.call(plot.querySelectorAll("circle.bub")), rows = [].slice.call(lb.querySelectorAll(".row"));
-    function setOn(i, on) {
-      bubs.forEach(function (b) { b.classList.toggle("on", on && +b.dataset.i === i); });
-      rows.forEach(function (r) { r.classList.toggle("on", on && +r.dataset.i === i); });
+    var sel = -1;
+    function paint(hot) {
+      var show = hot >= 0 ? hot : sel;
+      bubs.forEach(function (b) { b.classList.toggle("on", +b.dataset.i === show); });
+      rows.forEach(function (r) { r.classList.toggle("on", +r.dataset.i === show); });
     }
     function showTip(i, x, y) {
       var r = reps[i];
@@ -184,22 +223,53 @@ S.load().then(function () {
     }
     var hideTip = function () { tt.classList.remove("show"); };
     bubs.forEach(function (b) { var i = +b.dataset.i;
-      b.addEventListener("mousemove", function (e) { setOn(i, true); showTip(i, e.clientX, e.clientY); });
-      b.addEventListener("mouseleave", function () { // keep the highlight if a click just moved focus to this repo's row
-        hideTip(); var a = document.activeElement;
-        if (a && a.classList && a.classList.contains("row") && +a.dataset.i === i) return;
-        setOn(i, false);
-      });
+      b.addEventListener("mousemove", function (e) { paint(i); showTip(i, e.clientX, e.clientY); });
+      b.addEventListener("mouseleave", function () { hideTip(); paint(-1); });
       b.addEventListener("click", function () {
+        sel = (sel === i) ? -1 : i; paint(i);
         var row = rows.filter(function (r) { return +r.dataset.i === i; })[0];
-        if (row) { row.scrollIntoView({ block: "nearest" }); row.focus({ preventScroll: true }); }
+        if (row && sel >= 0) row.scrollIntoView({ block: "nearest" });
       });
     });
     rows.forEach(function (row) { var i = +row.dataset.i;
-      row.addEventListener("mouseenter", function () { setOn(i, true); });
-      row.addEventListener("mouseleave", function () { setOn(i, false); });
-      row.addEventListener("focus", function () { setOn(i, true); });
-      row.addEventListener("blur", function () { setOn(i, false); });
+      row.addEventListener("mouseenter", function () { paint(i); });
+      row.addEventListener("mouseleave", function () { paint(-1); });
+      row.addEventListener("focusin", function () { paint(i); });
+      row.addEventListener("focusout", function () { paint(-1); });
+      row.addEventListener("click", function (e) {
+        if (e.target.closest("a")) return; // the repo name still links out
+        sel = (sel === i) ? -1 : i; paint(i);
+      });
+    });
+
+    // language filter chips — dim non-matching bubbles, hide non-matching rows
+    var FOTHER = "Other", langFilter = null;
+    var fWrap = document.getElementById("filters");
+    fWrap.innerHTML = '<span class="flabel">Filter</span>' +
+      ["All"].concat(topLangs).concat([FOTHER]).map(function (L) {
+        var dot = L === "All" ? "" : '<span class="dot" style="background:' + (L === FOTHER ? "#8A93A0" : S.langColor(L)) + '"></span>';
+        return '<button class="fchip" data-f="' + S.esc(L) + '" aria-pressed="' + (L === "All") + '">' + dot + S.esc(L) + '</button>';
+      }).join("") + '<span class="fcount" id="fcount"></span>';
+    function matches(r) {
+      if (!langFilter) return true;
+      if (langFilter === FOTHER) return topLangs.indexOf(r.language) < 0;
+      return r.language === langFilter;
+    }
+    function applyFilter() {
+      sel = -1;
+      var n = 0;
+      bubs.forEach(function (b) { var ok = matches(reps[+b.dataset.i]); b.classList.toggle("dim", !ok); if (ok) n++; });
+      rows.forEach(function (r) { r.classList.toggle("hid", !matches(reps[+r.dataset.i])); });
+      paint(-1);
+      document.getElementById("fcount").textContent = langFilter ? (n + " of " + reps.length + " shown") : "";
+    }
+    fWrap.querySelectorAll(".fchip").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var f = b.getAttribute("aria-pressed") === "true" ? "All" : b.dataset.f; // re-click an active chip = back to All
+        langFilter = f === "All" ? null : f;
+        fWrap.querySelectorAll(".fchip").forEach(function (x) { x.setAttribute("aria-pressed", x.dataset.f === f); });
+        applyFilter();
+      });
     });
   }
 
