@@ -4,79 +4,60 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How trending is calculated · Starling</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%233B49DF' d='M8 1l2.1 4.3 4.7.7-3.4 3.3.8 4.7L8 11.8 3.8 14l.8-4.7L1.2 6l4.7-.7z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
 <style>
-  :root {
-    --ink:#0E1230; --surface:#161B42; --surface-2:#1F2657; --line:#2B3266;
-    --paper:#EDEFFF; --haze:#9BA2D0; --faint:#6B72A6;
-    --star:#FFC24B; --signal:#4FE0C0; --hot:#FF7A5C;
-    --mono: ui-monospace,"Cascadia Code","SF Mono","Segoe UI Mono",Consolas,monospace;
-    --sans: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 14px 34px -22px rgba(0,0,0,.7);
-  }
-  @media (prefers-color-scheme:light){ :root{
-    --ink:#F5F5FB;--surface:#FFFFFF;--surface-2:#F1F2FA;--line:#E4E5F3;--paper:#1A1F44;--haze:#5B6291;--faint:#8A90BC;
-    --star:#C9821F;--signal:#0FA891;--hot:#E15A3C;--shadow:0 1px 2px rgba(26,31,68,.06),0 14px 34px -22px rgba(26,31,68,.3);
-  }}
-  :root[data-theme="dark"]{ color-scheme:dark; --ink:#0E1230;--surface:#161B42;--surface-2:#1F2657;--line:#2B3266;--paper:#EDEFFF;--haze:#9BA2D0;--faint:#6B72A6;--star:#FFC24B;--signal:#4FE0C0;--hot:#FF7A5C; }
-  :root[data-theme="light"]{ color-scheme:light; --ink:#F5F5FB;--surface:#FFFFFF;--surface-2:#F1F2FA;--line:#E4E5F3;--paper:#1A1F44;--haze:#5B6291;--faint:#8A90BC;--star:#C9821F;--signal:#0FA891;--hot:#E15A3C; }
+  .doc{max-width:760px;}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin-top:30px;}
+  h1{font-family:var(--disp); font-size:32px; margin:8px 0 0; letter-spacing:-.03em; font-weight:700; text-wrap:balance;}
+  .lead{color:var(--ink); font-size:17px; margin:14px 0 0; max-width:60ch;}
+  h2{font-family:var(--disp); font-size:20px; margin:42px 0 8px; letter-spacing:-.02em; font-weight:600;}
+  p{color:var(--muted); font-size:15.5px; margin:12px 0; max-width:66ch;}
+  strong{color:var(--ink); font-weight:600;}
+  a{color:var(--accent);}
+  code{font-family:var(--mono); font-size:.88em; background:var(--line-2); color:var(--ink); padding:1px 6px; border-radius:5px;}
+  .s-now,.s-base,.s-abs{color:var(--amber);} .s-base{opacity:.85;} .s-pct{color:var(--up);} .s-days{color:var(--faint);}
 
-  *{ box-sizing:border-box; }
-  body{ margin:0; background:var(--ink); color:var(--paper); font-family:var(--sans); line-height:1.62; -webkit-font-smoothing:antialiased; }
-  .wrap{ max-width:720px; margin:0 auto; padding:0 22px 90px; }
-
-  .top{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:28px 0 6px; }
-  .back{ font-family:var(--mono); font-size:13px; color:var(--haze); text-decoration:none; }
-  .back:hover{ color:var(--signal); }
-  .brand{ display:flex; align-items:center; gap:8px; font-weight:800; letter-spacing:-.02em; }
-  .brand .g{ color:var(--star); }
-
-  .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--signal); margin-top:26px; }
-  h1{ font-size:31px; margin:8px 0 0; letter-spacing:-.03em; font-weight:800; text-wrap:balance; }
-  .lead{ color:var(--paper); font-size:17px; margin:14px 0 0; max-width:60ch; }
-  h2{ font-size:20px; margin:42px 0 8px; letter-spacing:-.02em; }
-  p{ color:var(--haze); font-size:15.5px; margin:12px 0; max-width:66ch; }
-  strong{ color:var(--paper); font-weight:650; }
-  a{ color:var(--signal); }
-  code{ font-family:var(--mono); font-size:.88em; background:var(--surface-2); color:var(--paper); padding:1px 6px; border-radius:5px; }
-
-  /* symbol legend */
-  .legend{ display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:16px 0; padding:14px 16px; background:var(--surface); border:1px solid var(--line); border-radius:12px; font-size:14px; }
-  .legend .sym{ font-family:var(--mono); font-weight:700; }
-  .legend .d{ color:var(--haze); }
-  .s-now{ color:var(--star); } .s-base{ color:var(--star); opacity:.72; } .s-pct{ color:var(--signal); } .s-abs{ color:var(--star); } .s-days{ color:var(--faint); }
-
-  /* formula card */
-  .formula{ background:var(--ink); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:16px 0; overflow-x:auto; box-shadow:var(--shadow); }
-  .formula .eq{ font-family:var(--mono); font-size:16px; white-space:nowrap; }
-  .formula .cap{ color:var(--faint); font-family:var(--mono); font-size:11.5px; margin-top:8px; }
-
-  /* table */
-  table{ width:100%; border-collapse:collapse; margin:16px 0; font-size:14.5px; display:block; overflow-x:auto; }
-  th,td{ text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
-  th{ font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); font-weight:600; }
-  td.mono{ font-family:var(--mono); }
-
-  .note{ border-left:3px solid var(--signal); background:var(--surface); border-radius:0 10px 10px 0; padding:12px 16px; margin:18px 0; font-size:14.5px; color:var(--haze); }
-  .note.gold{ border-left-color:var(--star); }
-  .note b{ color:var(--paper); }
-
-  ol.steps{ counter-reset:s; list-style:none; padding:0; margin:16px 0; }
-  ol.steps li{ position:relative; padding:10px 0 10px 40px; border-bottom:1px solid var(--line); color:var(--haze); font-size:15px; max-width:66ch; }
-  ol.steps li::before{ counter-increment:s; content:counter(s); position:absolute; left:0; top:9px; width:26px; height:26px; border-radius:8px; background:var(--surface-2); border:1px solid var(--line); color:var(--signal); font-family:var(--mono); font-size:13px; display:grid; place-items:center; }
-  ol.steps li b{ color:var(--paper); }
-
-  .foot{ margin-top:40px; padding-top:20px; border-top:1px solid var(--line); color:var(--faint); font-size:13px; }
-  .foot a{ color:var(--haze); }
-  @media (max-width:560px){ h1{ font-size:25px; } .formula .eq{ white-space:normal; } }
+  .legend{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:16px 0; padding:14px 16px; background:var(--panel); border:1px solid var(--line); border-radius:12px; font-size:14px; box-shadow:var(--shadow);}
+  .legend .sym{font-family:var(--mono); font-weight:600;} .legend .d{color:var(--muted);}
+  .formula{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:16px 0; overflow-x:auto; box-shadow:var(--shadow);}
+  .formula .eq{font-family:var(--mono); font-size:16px; white-space:nowrap; color:var(--ink);}
+  .formula .cap{color:var(--faint); font-family:var(--mono); font-size:11.5px; margin-top:8px;}
+  table{width:100%; border-collapse:collapse; margin:16px 0; font-size:14.5px; display:block; overflow-x:auto;}
+  th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap;}
+  th{font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); font-weight:600;}
+  td.mono{font-family:var(--mono);}
+  .note{border-left:3px solid var(--up); background:var(--panel); border-radius:0 10px 10px 0; padding:12px 16px; margin:18px 0; font-size:14.5px; color:var(--muted);}
+  .note.gold{border-left-color:var(--amber);} .note b{color:var(--ink);}
+  ol.steps{counter-reset:s; list-style:none; padding:0; margin:16px 0;}
+  ol.steps li{position:relative; padding:10px 0 10px 40px; border-bottom:1px solid var(--line); color:var(--muted); font-size:15px; max-width:66ch;}
+  ol.steps li::before{counter-increment:s; content:counter(s); position:absolute; left:0; top:9px; width:26px; height:26px; border-radius:8px; background:var(--paper); border:1px solid var(--line); color:var(--accent); font-family:var(--mono); font-size:13px; display:grid; place-items:center;}
+  ol.steps li b{color:var(--ink);}
+  @media (max-width:560px){ h1{font-size:26px;} .formula .eq{white-space:normal;} }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top">
-    <div class="brand"><span class="g">★</span> Starling</div>
-    <a class="back" href="index.html">← Back to the board</a>
+<div class="wrap" style="padding-bottom:0">
+  <div class="bar">
+    <div class="brand"><a class="logo" href="index.html">Star<b>ling</b></a><span class="kick">Open-source momentum</span></div>
+    <a class="clock" href="index.html" style="text-decoration:none">← Back to the board</a>
   </div>
+</div>
+<div class="wrap">
+  <nav class="views" aria-label="Views">
+    <a href="index.html">Board</a>
+    <a href="map.html">Map</a>
+    <a href="heatmap.html">Heatmap</a>
+    <a href="compare.html">Compare</a>
+    <span class="spacer"></span>
+    <a class="about" href="about.html" aria-current="page">How it works</a>
+  </nav>
 
+  <main>
+  <div class="doc">
   <div class="eyebrow">About · the method</div>
   <h1>How a repo becomes "trending"</h1>
   <p class="lead">Starling doesn't guess. Every repository on the board earned its place through the same arithmetic, applied identically to every repo, every day. Here's exactly how it works — the whole calculation, with the math.</p>
@@ -143,7 +124,7 @@
     <div class="eq"><span class="s-now">S_now</span> = 3,463      <span class="s-base">S_base</span> = 2,392      <span class="s-days">d</span> = 1</div>
     <div class="eq" style="margin-top:10px"><span class="s-abs">A</span> = 3,463 − 2,392 = <span class="s-abs">1,071 stars</span></div>
     <div class="eq" style="margin-top:6px"><span class="s-pct">P</span> = 1,071 / 2,392 = 0.4477 = <span class="s-pct">44.8%</span></div>
-    <div class="eq" style="margin-top:6px">gate: 1,071 ≥ 15 ✓   and   44.8% ≥ 1% ✓   →   <span style="color:var(--signal)">qualifies</span></div>
+    <div class="eq" style="margin-top:6px">gate: 1,071 ≥ 15 ✓   and   44.8% ≥ 1% ✓   →   <span style="color:var(--up)">qualifies</span></div>
     <div class="eq" style="margin-top:6px">score = 0.4477 / max(1, 1) = <span class="s-pct">0.4477</span>   →   ranked <strong>#1</strong> that day</div>
   </div>
 
@@ -167,8 +148,10 @@
   <div class="note gold"><b>These numbers are calibrated, not carved in stone.</b> The thresholds above are sensible starting points, tuned as real data accumulates — so the exact bars may shift over time as the definition of "trending" is sharpened against what the data actually looks like.</div>
 
   <div class="foot">
-    ★ Starling · <a href="index.html">back to the board</a> · summaries written by Google Gemini from each repo's README · <a href="https://github.com/AndrewGodlewsky/Github-Trending" rel="noopener">source on GitHub</a>
+    Starling · <a href="index.html">back to the board</a> · summaries written by Google Gemini from each repo's README · <a href="https://github.com/AndrewGodlewsky/Github-Trending" target="_blank" rel="noopener">source on GitHub</a>
   </div>
+  </div>
+  </main>
 </div>
 </body>
 </html>

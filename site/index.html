@@ -4,212 +4,163 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Starling — trending GitHub repositories</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%233B49DF' d='M8 1l2.1 4.3 4.7.7-3.4 3.3.8 4.7L8 11.8 3.8 14l.8-4.7L1.2 6l4.7-.7z'/%3E%3C/svg%3E">
+<meta name="description" content="Open-source momentum — the GitHub repositories gaining stars fastest, each with a plain-language line on what it does.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
 <style>
-  :root {
-    --ink: #0E1230; --surface: #161B42; --surface-2: #1F2657; --line: #2B3266;
-    --paper: #EDEFFF; --haze: #9BA2D0; --faint: #6B72A6;
-    --star: #FFC24B; --signal: #4FE0C0; --hot: #FF7A5C;
-    --mono: ui-monospace, "Cascadia Code", "SF Mono", "Segoe UI Mono", Consolas, monospace;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --card-shadow: 0 1px 0 rgba(255,255,255,.03), 0 12px 30px -18px rgba(0,0,0,.7);
-  }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --ink: #F5F5FB; --surface: #FFFFFF; --surface-2: #F0F1FA; --line: #E4E5F3;
-      --paper: #1A1F44; --haze: #5B6291; --faint: #8A90BC;
-      --star: #C9821F; --signal: #0FA891; --hot: #E15A3C;
-      --card-shadow: 0 1px 2px rgba(26,31,68,.06), 0 14px 34px -22px rgba(26,31,68,.35);
-    }
-  }
-  :root[data-theme="dark"] { color-scheme: dark;
-    --ink:#0E1230;--surface:#161B42;--surface-2:#1F2657;--line:#2B3266;--paper:#EDEFFF;--haze:#9BA2D0;--faint:#6B72A6;--star:#FFC24B;--signal:#4FE0C0;--hot:#FF7A5C; }
-  :root[data-theme="light"] { color-scheme: light;
-    --ink:#F5F5FB;--surface:#FFFFFF;--surface-2:#F0F1FA;--line:#E4E5F3;--paper:#1A1F44;--haze:#5B6291;--faint:#8A90BC;--star:#C9821F;--signal:#0FA891;--hot:#E15A3C; }
+  body{background-image:linear-gradient(var(--line-2) 1px,transparent 1px); background-size:100% 46px; background-position:0 250px;}
+  .wmeta{display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-family:var(--mono); font-size:11px; color:var(--faint); letter-spacing:.02em; margin:2px 0 12px;}
+  .thead{display:grid; grid-template-columns:44px 1fr 120px 96px 116px; gap:18px; align-items:end; padding:0 20px 9px; font-family:var(--mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--faint);}
+  .thead .r{text-align:right;}
+  .board{display:flex; flex-direction:column;}
 
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--ink); color:var(--paper); font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased; }
-  .wrap { max-width:980px; margin:0 auto; padding:0 20px 80px; }
+  .hero{background:var(--panel); border:1px solid var(--line); border-top:3px solid var(--up); border-radius:14px; padding:22px 24px; display:grid; grid-template-columns:1fr auto; gap:26px; margin-bottom:14px; box-shadow:var(--shadow);}
+  .hero .badge{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--up); display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .hero .badge i{width:6px; height:6px; border-radius:50%; background:var(--up);}
+  .hero .name{font-family:var(--disp); font-weight:700; font-size:29px; letter-spacing:-.03em; line-height:1.05; color:inherit; text-decoration:none; display:inline-block;}
+  .hero .name .o{color:var(--muted); font-weight:500;}
+  .hero a.name:hover, .hero a.name:hover .o{color:var(--accent);}
+  .hero .sum{color:var(--muted); font-size:14px; max-width:52ch; margin:12px 0 14px;}
+  .hero .chips{display:flex; gap:8px; flex-wrap:wrap;}
+  .hero .quote{text-align:right; display:flex; flex-direction:column; align-items:flex-end; justify-content:center; min-width:200px;}
+  .hero .pct{font-family:var(--disp); font-weight:700; font-size:52px; letter-spacing:-.04em; color:var(--up); line-height:1; font-variant-numeric:tabular-nums;}
+  .hero .pct .car{font-size:26px; vertical-align:middle; margin-right:4px;}
+  .hero .chart{margin:10px 0 8px; color:var(--up);}
+  .hero .sub{font-family:var(--mono); font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .hero .sub b{color:var(--amber); font-weight:600;}
 
-  .top { display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:40px 0 8px; }
-  .mark { display:flex; align-items:center; gap:10px; }
-  .mark .glyph { color:var(--star); font-size:26px; line-height:1; transform:translateY(1px); }
-  .mark h1 { font-size:25px; margin:0; letter-spacing:-.03em; font-weight:800; }
-  .date { font-family:var(--mono); font-size:12.5px; color:var(--haze); letter-spacing:.02em; }
-  .topright { display:flex; align-items:center; gap:14px; }
-  .about { font-family:var(--mono); font-size:12px; color:var(--haze); text-decoration:none; padding:5px 11px; border:1px solid var(--line); border-radius:8px; white-space:nowrap; }
-  .about:hover { color:var(--signal); border-color:color-mix(in srgb, var(--signal) 40%, var(--line)); }
-  .thesis { margin:2px 0 22px; color:var(--haze); font-size:15.5px; max-width:60ch; text-wrap:balance; }
-  .thesis b { color:var(--paper); font-weight:600; }
+  .row{display:grid; grid-template-columns:44px 1fr 120px 96px 116px; gap:18px; align-items:center; padding:15px 20px; border-bottom:1px solid var(--line-2); border-radius:10px; transition:background .15s;}
+  .row:hover{background:var(--panel);}
+  .row:focus-within{outline:2px solid var(--accent); outline-offset:-2px;}
+  .rank{font-family:var(--mono); font-size:14px; color:var(--faint); font-variant-numeric:tabular-nums;}
+  .id .nm{font-family:var(--disp); font-weight:600; font-size:16px; letter-spacing:-.01em;}
+  .id .nm .o{color:var(--muted); font-weight:400;}
+  .id .nm a{text-decoration:none; color:inherit;} .id .nm a:hover{color:var(--accent);}
+  .id .sm{color:var(--muted); font-size:12.7px; margin:3px 0 0; max-width:70ch; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;}
+  .id .chips{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:5px;}
+  .cell-pct{text-align:right; font-family:var(--disp); font-weight:700; font-size:22px; color:var(--up); font-variant-numeric:tabular-nums; letter-spacing:-.02em;}
+  .cell-pct .car{font-size:13px; margin-right:2px;}
+  .cell-abs{text-align:right; font-family:var(--mono); font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .cell-abs b{color:var(--amber); font-weight:600;} .cell-abs .t{display:block; font-size:11px; color:var(--faint);}
+  .cell-chart{color:var(--up); display:flex; justify-content:flex-end;}
 
-  .tabs { display:inline-flex; gap:2px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:4px; position:sticky; top:12px; z-index:5; box-shadow:var(--card-shadow); }
-  .tab { appearance:none; border:0; background:transparent; color:var(--haze); cursor:pointer; font-family:var(--mono); font-size:12.5px; letter-spacing:.02em; padding:8px 16px; border-radius:9px; display:flex; align-items:baseline; gap:8px; transition:background .18s,color .18s; }
-  .tab .n { font-size:10px; color:var(--faint); }
-  .tab[aria-selected="true"] { background:var(--surface-2); color:var(--paper); }
-  .tab[aria-selected="true"] .n { color:var(--signal); }
-  .tab:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
-  .barline { height:1px; background:var(--line); margin:22px 0 8px; }
-  .windowmeta { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-family:var(--mono); font-size:11.5px; color:var(--faint); margin-bottom:14px; letter-spacing:.02em; }
-
-  .board { display:flex; flex-direction:column; gap:10px; }
-  .row { display:grid; grid-template-columns:34px 42px 1fr auto; gap:16px; align-items:start; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; box-shadow:var(--card-shadow); transition:transform .18s,border-color .18s; }
-  .row:hover { transform:translateY(-2px); border-color:color-mix(in srgb, var(--signal) 40%, var(--line)); }
-  .row.lead { grid-template-columns:34px 52px 1fr auto; padding:22px 20px; border-color:color-mix(in srgb, var(--hot) 45%, var(--line)); background:linear-gradient(180deg, color-mix(in srgb, var(--hot) 7%, var(--surface)), var(--surface)); }
-
-  .rank { font-family:var(--mono); font-size:15px; color:var(--faint); padding-top:4px; font-variant-numeric:tabular-nums; }
-  .row.lead .rank { color:var(--hot); font-size:17px; }
-
-  .avatar { position:relative; width:42px; height:42px; border-radius:11px; display:grid; place-items:center; overflow:hidden; font-family:var(--mono); font-weight:700; font-size:16px; color:var(--paper); background:var(--surface-2); border:1.5px solid var(--lang, var(--line)); }
-  .row.lead .avatar { width:52px; height:52px; font-size:20px; }
-  .avatar img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-
-  .meta { min-width:0; }
-  .namerow { display:flex; align-items:baseline; gap:7px; flex-wrap:wrap; }
-  .namerow a { text-decoration:none; }
-  .owner { color:var(--haze); font-size:14.5px; } .slash { color:var(--faint); }
-  .name { color:var(--paper); font-weight:700; font-size:16.5px; letter-spacing:-.01em; }
-  .namerow a:hover .name { color:var(--signal); }
-  .row.lead .name { font-size:19px; }
-  .summary { color:var(--haze); font-size:13.7px; margin:7px 0 10px; max-width:62ch; }
-  .summary.fallback { color:var(--faint); font-style:italic; }
-  .chips { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .lang { display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--haze); }
-  .dot { width:9px; height:9px; border-radius:50%; background:var(--lang, var(--faint)); }
-  .topic { font-family:var(--mono); font-size:10.5px; color:var(--faint); border:1px solid var(--line); border-radius:6px; padding:2px 7px; }
-
-  .mom { display:grid; grid-template-columns:auto 120px; gap:4px 18px; align-items:center; justify-items:end; }
-  .pct { grid-column:1; font-family:var(--mono); font-weight:700; font-size:24px; color:var(--signal); letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1; }
-  .row.lead .pct { font-size:30px; }
-  .spark { grid-column:2; grid-row:1 / span 2; }
-  .substat { grid-column:1; display:flex; align-items:baseline; gap:12px; font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums; }
-  .stars { color:var(--star); } .stars .s { opacity:.85; }
-  .gain { color:var(--star); opacity:.82; }
-  .span { color:var(--faint); font-size:10.5px; }
-
-  svg.trend { display:block; overflow:visible; }
-  svg.trend path.area { opacity:.18; }
-  svg.trend path.line { fill:none; stroke:var(--signal); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-  svg.trend circle.end { fill:var(--signal); } svg.trend circle.halo { fill:var(--signal); opacity:.22; }
-
-  .legend { display:flex; gap:22px; flex-wrap:wrap; margin-top:26px; padding-top:18px; border-top:1px solid var(--line); font-family:var(--mono); font-size:11.5px; color:var(--haze); }
-  .legend .k { display:inline-flex; align-items:center; gap:8px; } .legend .sw { width:22px; height:3px; border-radius:2px; }
-  .foot { margin-top:18px; color:var(--faint); font-size:12px; } .foot a { color:var(--haze); }
-  .state { padding:48px 8px; text-align:center; color:var(--haze); font-family:var(--mono); font-size:13px; }
-
-  @media (max-width:680px) {
-    .row, .row.lead { grid-template-columns:26px 40px 1fr; }
-    .mom { grid-column:1 / -1; grid-template-columns:1fr auto; justify-items:start; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); }
-    .pct { grid-column:1; } .spark { grid-column:2; grid-row:1 / span 2; } .substat { grid-column:1; }
-  }
-  .row { opacity:0; transform:translateY(8px); }
-  .row.in { opacity:1; transform:translateY(0); transition:opacity .4s ease, transform .4s ease; }
-  .row:hover.in { transform:translateY(-2px); }
-  svg.trend path.line { stroke-dasharray:var(--len); stroke-dashoffset:var(--len); }
-  .row.in svg.trend path.line { animation:draw .9s ease forwards; }
-  @keyframes draw { to { stroke-dashoffset:0; } }
-  @media (prefers-reduced-motion:reduce) {
-    .row, .row.in { opacity:1; transform:none; transition:none; }
-    svg.trend path.line { stroke-dashoffset:0; animation:none; }
+  @media (max-width:760px){
+    body{background-image:none;}
+    .thead{display:none;}
+    .hero{grid-template-columns:1fr; gap:16px;} .hero .quote{text-align:left; align-items:flex-start;}
+    .hero .name{font-size:23px;} .hero .pct{font-size:40px;}
+    .row{grid-template-columns:34px 1fr auto; row-gap:6px; padding:14px 12px;}
+    .row .cell-abs{display:none;}
+    .row .cell-chart{grid-column:1 / -1; justify-content:flex-start; margin-top:2px;}
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="top">
-      <div class="mark"><span class="glyph">★</span><h1>Starling</h1></div>
-      <div class="topright"><a class="about" href="about.html">How it works</a><span class="date" id="date">—</span></div>
-    </div>
-    <p class="thesis">What open source is <b>starring</b> right now — the repositories gaining stars fastest, each with a plain-language line on what it actually does.</p>
-    <div class="tabs" role="tablist" aria-label="Trend window">
-      <button class="tab" role="tab" aria-selected="true"  data-win="day">Today <span class="n">24h</span></button>
-      <button class="tab" role="tab" aria-selected="false" data-win="week">This week <span class="n">7d</span></button>
-      <button class="tab" role="tab" aria-selected="false" data-win="month">This month <span class="n">30d</span></button>
-    </div>
-    <div class="barline"></div>
-    <div class="windowmeta"><span id="wlabel">—</span><span id="wcount"></span></div>
-  </header>
-  <main class="board" id="board" aria-live="polite"><div class="state">Loading trending repositories…</div></main>
-  <div class="legend">
-    <span class="k"><span class="sw" style="background:var(--signal)"></span> velocity — % stars gained (ranked by this)</span>
-    <span class="k"><span class="sw" style="background:var(--star)"></span> volume — stars added &amp; current total</span>
+<div class="wrap" style="padding-bottom:0">
+  <div class="bar">
+    <div class="brand"><a class="logo" href="index.html">Star<b>ling</b></a><span class="kick">Open-source momentum</span></div>
+    <div class="clock" id="clock">—</div>
   </div>
-  <p class="foot" id="foot"><a href="about.html">How trending is calculated</a> · updated daily · summaries by Gemini · <a href="https://github.com/AndrewGodlewsky/Github-Trending" rel="noopener">source</a></p>
+</div>
+<div class="ticker" aria-hidden="true"><div class="tick-track" id="tickTrack"></div></div>
+
+<div class="wrap">
+  <nav class="views" aria-label="Views">
+    <a href="index.html" aria-current="page">Board</a>
+    <a href="map.html">Map</a>
+    <a href="heatmap.html">Heatmap</a>
+    <a href="compare.html">Compare</a>
+    <span class="spacer"></span>
+    <a class="about" href="about.html">How it works</a>
+  </nav>
+
+  <main>
+  <div class="strip">
+    <div class="lede">
+      <h1 id="ledeH">Today’s biggest movers</h1>
+      <p>Repositories ranked by <b>velocity</b> — the percent of stars gained this window, not the raw total. Each with a plain-language line on what it does.</p>
+    </div>
+    <div class="seg" role="tablist" aria-label="Trend window">
+      <button role="tab" aria-selected="true" data-win="day" aria-controls="boardPanel">Today <span class="d">24H</span></button>
+      <button role="tab" aria-selected="false" data-win="week" aria-controls="boardPanel">Week <span class="d">7D</span></button>
+      <button role="tab" aria-selected="false" data-win="month" aria-controls="boardPanel">Month <span class="d">30D</span></button>
+    </div>
+  </div>
+
+  <div id="boardPanel" role="tabpanel" aria-label="Trending repositories">
+  <div class="wmeta" role="status"><span id="wlabel">—</span><span id="wcount"></span></div>
+  <div class="thead"><div>Rank</div><div>Repository</div><div class="r">Velocity</div><div class="r">Added</div><div class="r">Trend</div></div>
+  <div class="board" id="board"><div class="state">Loading trending repositories…</div></div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--up)"></i>Velocity — % stars gained this window (rank)</span>
+    <span><i style="background:var(--amber)"></i>Added &amp; total — raw star volume</span>
+  </div>
+  <p class="foot"><a href="about.html">How trending is calculated</a> · updated daily · summaries by Gemini</p>
+  </main>
 </div>
 
+<script src="assets/data.js"></script>
 <script>
-  const LANG = { Rust:"#dea584", TypeScript:"#3178c6", Go:"#00ADD8", Python:"#3572A5", JavaScript:"#f1e05a",
-    Zig:"#ec915c", C:"#8a8a8a", "C++":"#f34b7d", "C#":"#178600", CSS:"#563d7c", Shell:"#89e051",
-    Swift:"#F05138", Java:"#b07219", Ruby:"#701516", Kotlin:"#A97BFF", HTML:"#e34c26" };
-  const WLABEL = { day:"vs. yesterday", week:"vs. 7 days ago", month:"vs. 30 days ago" };
-  const board = document.getElementById("board");
-  let DATA = null, current = "day";
+var S = Starling;
+S.load().then(function () {
+  S.chrome();
+  var current = "day";
 
-  const fmt = n => n.toLocaleString("en-US");
-  const initials = (o,n) => (n[0]+(n[1]||"")).toUpperCase();
+  function render(win) {
+    var w = S.win(win);
+    S.buildTicker(document.getElementById("tickTrack"), w.repos);
+    document.getElementById("ledeH").textContent = S.WLABEL[win] + "’s biggest movers";
+    document.getElementById("wlabel").textContent = S.WLABEL[win] + " · " + S.WSINCE[win];
+    document.getElementById("wcount").textContent = w.count ? ("top " + w.repos.length + (w.count > w.repos.length ? " of " + w.count : "") + " · since " + w.boundary_date) : "";
+    var board = document.getElementById("board");
+    if (!w.repos.length) {
+      board.removeAttribute("role");
+      board.innerHTML = '<div class="state">No repositories cleared the ' + S.WSUB[win] + ' threshold this run — check back tomorrow.</div>';
+      return;
+    }
+    var out = "";
+    var lead = w.repos[0];
+    var sum = function (r) { return S.esc(r.summary || r.description || "Summary pending."); };
+    var chips = function (r) {
+      var c = S.langColor(r.language);
+      var t = (r.topics || []).slice(0, 3).map(function (x) { return '<span class="chip">' + S.esc(x) + '</span>'; }).join("");
+      return '<span class="lang"><span class="dot" style="background:' + c + '"></span>' + S.esc(r.language || "—") + '</span>' + t;
+    };
+    out += '<article class="hero" role="listitem">' +
+      '<div><div class="badge"><i></i>Top mover · rank 01</div>' +
+      '<a class="name" href="' + S.repoUrl(lead) + '" target="_blank" rel="noopener"><span class="o">' + S.esc(lead.owner) + '/</span>' + S.esc(lead.name) + '</a>' +
+      '<p class="sum">' + sum(lead) + '</p><div class="chips">' + chips(lead) + '</div></div>' +
+      '<div class="quote"><div class="pct"><span class="car">▲</span>' + S.pctOf(lead.pct_gain) + '%</div>' +
+      '<div class="chart">' + S.sparkline(lead.spark, { w: 180, h: 52, stroke: "var(--up)" }) + '</div>' +
+      '<div class="sub"><b>+' + S.fmt(lead.abs_gain) + '★</b> · ' + S.fmt(lead.stars) + ' total</div></div></article>';
 
-  function sparkSVG(pts){
-    if (!pts || pts.length < 2) return `<span class="span">new</span>`;
-    const W=120,H=36,pad=3, max=Math.max(...pts), min=Math.min(...pts), rng=(max-min)||1;
-    const x=i=>pad+(i/(pts.length-1))*(W-2*pad), y=v=>H-pad-((v-min)/rng)*(H-2*pad);
-    let d="M"+x(0)+" "+y(pts[0]); for(let i=1;i<pts.length;i++) d+=" L"+x(i)+" "+y(pts[i]);
-    const area=d+` L${x(pts.length-1)} ${H} L${x(0)} ${H} Z`, len=Math.round((W-2*pad)*1.25);
-    const ex=x(pts.length-1), ey=y(pts[pts.length-1]);
-    return `<svg class="trend" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="--len:${len}" aria-hidden="true">
-      <path class="area" d="${area}" fill="var(--signal)"></path><path class="line" d="${d}"></path>
-      <circle class="halo" cx="${ex}" cy="${ey}" r="4.5"></circle><circle class="end" cx="${ex}" cy="${ey}" r="2.4"></circle></svg>`;
+    for (var i = 1; i < w.repos.length; i++) {
+      var r = w.repos[i];
+      out += '<div class="row" role="listitem"><div class="rank">' + String(i + 1).padStart(2, "0") + '</div>' +
+        '<div class="id"><div class="nm"><a href="' + S.repoUrl(r) + '" target="_blank" rel="noopener"><span class="o">' + S.esc(r.owner) + '/</span>' + S.esc(r.name) + '</a></div>' +
+        '<p class="sm">' + sum(r) + '</p><div class="chips">' + chips(r) + '</div></div>' +
+        '<div class="cell-pct"><span class="car">▲</span>' + S.pctOf(r.pct_gain) + '%</div>' +
+        '<div class="cell-abs"><b>+' + S.fmt(r.abs_gain) + '</b><span class="t">' + S.fmt(r.stars) + '★</span></div>' +
+        '<div class="cell-chart">' + S.sparkline(r.spark, { stroke: "var(--up)" }) + '</div></div>';
+    }
+    board.setAttribute("role", "list");
+    board.innerHTML = out;
   }
-  const esc = s => (s||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-  function render(win){
-    const w = DATA.windows[win];
-    document.getElementById("wlabel").textContent = WLABEL[win];
-    document.getElementById("wcount").textContent = w.count ? `top ${w.count} · since ${w.boundary_date}` : "";
-    board.innerHTML = "";
-    if (!w.repos.length){ board.innerHTML = `<div class="state">No repositories cleared the ${win} threshold today — check back tomorrow.</div>`; return; }
-    w.repos.forEach((r, idx) => {
-      const lc = LANG[r.language] || "var(--faint)";
-      const el = document.createElement("article");
-      el.className = "row" + (idx===0 ? " lead":"");
-      el.style.setProperty("--lang", lc);
-      const topics = (r.topics||[]).slice(0,3).map(t=>`<span class="topic">${esc(t)}</span>`).join("");
-      const spanNote = r.elapsed_days>1 ? `<span class="span">${r.elapsed_days}d span</span>` : "";
-      const body = r.summary ? `<p class="summary">${esc(r.summary)}</p>`
-                             : `<p class="summary fallback">${esc(r.description) || "Summary pending."}</p>`;
-      el.innerHTML = `
-        <div class="rank">${String(idx+1).padStart(2,"0")}</div>
-        <div class="avatar"><img src="${esc(r.avatar_url)}" alt="" loading="lazy" onerror="this.remove()"><span>${esc(initials(r.owner,r.name))}</span></div>
-        <div class="meta">
-          <div class="namerow"><a href="${esc(r.html_url)}" rel="noopener"><span class="owner">${esc(r.owner)}</span><span class="slash">/</span><span class="name">${esc(r.name)}</span></a></div>
-          ${body}
-          <div class="chips"><span class="lang"><span class="dot"></span>${esc(r.language)||"—"}</span>${topics}</div>
-        </div>
-        <div class="mom">
-          <div class="pct">+${(r.pct_gain*100).toFixed(r.pct_gain<0.1?1:0)}%</div>
-          ${sparkSVG(r.spark)}
-          <div class="substat"><span class="gain">+${fmt(r.abs_gain)}</span><span class="stars"><span class="s">★</span> ${fmt(r.stars)}</span>${spanNote}</div>
-        </div>`;
-      board.appendChild(el);
-      requestAnimationFrame(()=> setTimeout(()=> el.classList.add("in"), Math.min(idx,20)*45));
+  document.querySelectorAll(".seg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (b.dataset.win === current) return;
+      document.querySelectorAll(".seg button").forEach(function (x) { x.setAttribute("aria-selected", x === b); });
+      current = b.dataset.win; render(current);
     });
-  }
-
-  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
-    if (t.dataset.win===current || !DATA) return;
-    document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x===t));
-    current = t.dataset.win; render(current);
-  }));
-
-  fetch("./data/latest.json", {cache:"no-cache"}).then(r => {
-    if (!r.ok) throw new Error(r.status);
-    return r.json();
-  }).then(d => {
-    DATA = d;
-    const gen = new Date(d.generated_at);
-    document.getElementById("date").textContent = gen.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-    render(current);
-  }).catch(err => {
-    board.innerHTML = `<div class="state">Couldn't load the latest data (${esc(String(err))}). It refreshes once a day — try again shortly.</div>`;
   });
+  render(current);
+}).catch(function (err) { S.fail("board", err); });
 </script>
 </body>
 </html>

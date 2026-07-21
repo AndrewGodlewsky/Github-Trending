@@ -1,0 +1,86 @@
+/* Starling — shared Ticker theme (tokens + chrome used by every page). */
+:root{
+  --paper:#F1F4F7; --panel:#FFFFFF; --ink:#0F1620; --muted:#5A6472; --faint:#66707C; /* faint darkened from #8A93A0 for WCAG AA (4.6:1 on paper, 5.0:1 on panel) */
+  --line:#DCE1E7; --line-2:#E9EDF1;
+  --up:#0B7A57; --up-soft:#E4F2EC; --down:#C0491F; --accent:#3B49DF; --amber:#9A6600;
+  --disp:"Space Grotesk", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --shadow:0 20px 40px -30px rgba(15,22,32,.5);
+}
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); line-height:1.5; -webkit-font-smoothing:antialiased;}
+a{color:inherit;}
+.wrap{max-width:1180px; margin:0 auto; padding:0 22px 90px;}
+
+/* masthead */
+.bar{display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap; padding:26px 0 18px; border-bottom:2px solid var(--ink);}
+.brand{display:flex; align-items:baseline; gap:12px;}
+.brand .logo{font-family:var(--disp); font-weight:700; font-size:23px; letter-spacing:-.03em; text-decoration:none; color:var(--ink);}
+.brand .logo b{color:var(--accent);}
+.brand .kick{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); border-left:1px solid var(--line); padding-left:12px;}
+.clock{font-family:var(--mono); font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;}
+.clock b{color:var(--ink); font-weight:600;}
+
+/* view switcher */
+.views{display:flex; gap:4px; flex-wrap:wrap; align-items:center; margin-top:12px;}
+.views a{font-family:var(--mono); font-size:11px; letter-spacing:.03em; text-transform:uppercase; color:var(--muted);
+  text-decoration:none; padding:6px 11px; border:1px solid var(--line); border-radius:8px; background:var(--panel);}
+.views a:hover{border-color:var(--accent); color:var(--accent);}
+.views a[aria-current="page"]{background:var(--ink); color:#fff; border-color:var(--ink);}
+.views a:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.views .spacer{flex:1;}
+.views .about{border-style:dashed;}
+
+/* ticker strip */
+.ticker{position:relative; overflow:hidden; border-bottom:1px solid var(--line); background:var(--panel);}
+.ticker::before,.ticker::after{content:""; position:absolute; top:0; bottom:0; width:46px; z-index:2; pointer-events:none;}
+.ticker::before{left:0; background:linear-gradient(90deg,var(--panel),transparent);}
+.ticker::after{right:0; background:linear-gradient(270deg,var(--panel),transparent);}
+.tick-track{display:inline-flex; white-space:nowrap; padding:9px 0; will-change:transform; animation:scroll 60s linear infinite;}
+.ticker:hover .tick-track{animation-play-state:paused;}
+.tick{display:inline-flex; align-items:baseline; gap:9px; padding:0 22px; font-family:var(--mono); font-size:12.5px; border-right:1px solid var(--line-2); text-decoration:none; color:inherit; cursor:pointer;}
+.tick .sym{font-weight:600; letter-spacing:.02em; color:var(--ink); text-transform:uppercase;}
+.tick .mv{color:var(--up); font-weight:600;}
+.tick:hover .sym{color:var(--accent); text-decoration:underline; text-underline-offset:2px;}
+@keyframes scroll{from{transform:translateX(0);} to{transform:translateX(-50%);}}
+
+/* window segmented control */
+.seg{display:inline-flex; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:3px;}
+.seg button{appearance:none; border:0; background:transparent; cursor:pointer; font-family:var(--mono); font-size:11.5px;
+  letter-spacing:.04em; text-transform:uppercase; color:var(--muted); padding:8px 14px; border-radius:7px; display:flex; align-items:baseline; gap:7px;}
+.seg button .d{font-size:9.5px; color:var(--faint);}
+.seg button[aria-selected="true"]{background:var(--ink); color:#fff;}
+.seg button[aria-selected="true"] .d{color:#93E7CB;}
+.seg button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+/* strip header */
+.strip{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:24px 0 16px;}
+.lede h1, .lede h2{font-family:var(--disp); font-weight:600; font-size:19px; letter-spacing:-.02em; margin:0 0 4px;}
+.lede p{margin:0; color:var(--muted); font-size:13.5px; max-width:58ch;}
+.lede p b{color:var(--ink);}
+
+/* shared marks */
+.dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+.lang{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; color:var(--muted);}
+.chip{font-family:var(--mono); font-size:10px; color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:2px 7px; white-space:nowrap;}
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow);}
+
+/* tooltip */
+.tt{position:fixed; z-index:50; pointer-events:none; opacity:0; transform:translateY(4px); transition:opacity .12s;
+  background:var(--ink); color:#fff; border-radius:10px; padding:10px 12px; font-family:var(--mono); font-size:11.5px; line-height:1.5; max-width:260px; box-shadow:0 12px 30px -12px rgba(0,0,0,.55);}
+.tt.show{opacity:1; transform:translateY(0);}
+.tt .nm{font-family:var(--disp); font-weight:600; font-size:13px; letter-spacing:-.01em; margin-bottom:3px;}
+.tt .up{color:#5AE0B4;} .tt .am{color:#F2C36B;} .tt .mut{color:#9BA6B6;}
+
+.legend{display:flex; gap:22px; flex-wrap:wrap; margin-top:22px; padding-top:16px; border-top:1px solid var(--line); font-family:var(--mono); font-size:11px; color:var(--muted); align-items:center;}
+.legend i{display:inline-block; width:20px; height:3px; border-radius:2px; vertical-align:middle; margin-right:8px;}
+.foot{margin-top:14px; font-family:var(--mono); font-size:11px; color:var(--faint);}
+.foot a{color:var(--muted);}
+
+/* loading / error / empty states */
+.state{padding:60px 8px; text-align:center; color:var(--muted); font-family:var(--mono); font-size:13px;}
+.state.err{color:var(--down);}
+
+@media (prefers-reduced-motion:reduce){ .tick-track{animation:none;} }

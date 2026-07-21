@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starling — Compare</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%233B49DF' d='M8 1l2.1 4.3 4.7.7-3.4 3.3.8 4.7L8 11.8 3.8 14l.8-4.7L1.2 6l4.7-.7z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<style>
+  .desk{display:grid; grid-template-columns:320px 1fr; gap:18px; align-items:start;}
+  .rail{padding:8px; max-height:660px; overflow:auto;}
+  .rail .row{display:grid; grid-template-columns:24px 1fr auto 30px; gap:9px; align-items:center; padding:9px 8px; border-radius:9px; width:100%;}
+  .rail .row.focus{background:var(--paper); box-shadow:inset 3px 0 0 var(--accent);}
+  .rail .rk{font-family:var(--mono); font-size:11px; color:var(--faint); font-variant-numeric:tabular-nums;}
+  .rail .open{border:0; background:transparent; text-align:left; cursor:pointer; min-width:0; padding:0; font:inherit; display:flex; flex-direction:column; gap:1px;}
+  .rail .open b{font-family:var(--disp); font-weight:600; font-size:13.5px; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rail .open .l{font-family:var(--mono); font-size:10px; color:var(--muted); display:flex; align-items:center; gap:5px;}
+  .rail .open:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px;}
+  .rail .pv{font-family:var(--disp); font-weight:700; font-size:14px; color:var(--up); font-variant-numeric:tabular-nums;}
+  .pin{width:26px; height:26px; border-radius:7px; border:1px solid var(--line); background:var(--panel); cursor:pointer; font-family:var(--mono); font-size:14px; color:var(--muted); display:grid; place-items:center; padding:0;}
+  .pin:hover{border-color:var(--accent); color:var(--accent);}
+  .pin.on{background:var(--sc,var(--accent)); border-color:transparent; color:#fff;}
+  .pin:disabled{opacity:.35; cursor:not-allowed;} .pin:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .stack{display:flex; flex-direction:column; gap:18px;}
+  .detail{padding:22px 24px;}
+  .detail .eyebrow{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:8px;}
+  .detail .eyebrow-row{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .detail .eyebrow-row .eyebrow{margin-bottom:0;}
+  .ghlink{font-family:var(--mono); font-size:11px; color:var(--accent); text-decoration:none; border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line)); border-radius:7px; padding:5px 10px; white-space:nowrap;}
+  .ghlink:hover{background:color-mix(in srgb,var(--accent) 8%,transparent);} .ghlink:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .detail .nm{font-family:var(--disp); font-weight:700; font-size:30px; letter-spacing:-.03em; line-height:1.02;}
+  .detail .nm .o{color:var(--muted); font-weight:500;}
+  .detail a.nm{color:inherit; text-decoration:none; display:inline-block; margin-top:6px;}
+  .detail a.nm:hover, .detail a.nm:hover .o{color:var(--accent);}
+  .detail .sum{color:var(--muted); font-size:14.5px; margin:12px 0 16px; max-width:66ch;}
+  .detail .chips{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;}
+  .stats{display:flex; gap:30px; flex-wrap:wrap; margin-bottom:14px;}
+  .stat .k{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint);}
+  .stat .v{font-family:var(--disp); font-weight:700; font-size:26px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.1;}
+  .stat .v.up{color:var(--up);} .stat .v.am{color:var(--amber);}
+  .detail .chart{color:var(--up); margin-top:6px;} .detail .chart svg{width:100%; height:auto;}
+  .similar{margin-top:16px; padding-top:14px; border-top:1px solid var(--line-2);}
+  .similar .k{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin-bottom:8px;}
+  .similar .chips button{cursor:pointer;}
+
+  .cmp{padding:18px 22px 20px;}
+  .cmp-h{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:6px;}
+  .cmp-h h3{font-family:var(--disp); font-weight:600; font-size:15px; margin:0;}
+  .cmp-h .hint{font-family:var(--mono); font-size:10px; color:var(--faint); text-transform:uppercase; letter-spacing:.05em;}
+  .cmp .cwrap{display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start;}
+  .cmp svg{width:100%; height:auto;} .cmp svg text{font-family:var(--mono); font-size:10px;}
+  .cmp .grid line{stroke:var(--line-2);}
+  .cmp table{border-collapse:collapse; width:100%; font-family:var(--mono); font-size:11.5px;}
+  .cmp th{text-align:right; font-weight:500; color:var(--faint); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; padding:0 0 8px;}
+  .cmp th:first-child{text-align:left;}
+  .cmp td{padding:7px 0; border-top:1px solid var(--line-2); text-align:right; font-variant-numeric:tabular-nums;}
+  .cmp td:first-child{text-align:left; display:flex; align-items:center; gap:7px;}
+  .cmp td .sd{width:9px; height:9px; border-radius:3px; flex:none;}
+  .cmp td b{font-family:var(--disp); font-weight:600;}
+  .cmp td a{color:inherit; text-decoration:none;} .cmp td a:hover b{color:var(--accent); text-decoration:underline;}
+  .cmp .empty{color:var(--faint); font-family:var(--mono); font-size:12px; padding:30px 0; text-align:center;}
+  .cmp-note{font-family:var(--mono); font-size:10px; color:var(--faint); margin:0 0 10px; letter-spacing:.02em;}
+
+  @media (max-width:920px){ .desk{grid-template-columns:1fr;} .rail{max-height:340px;} .cmp .cwrap{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap" style="padding-bottom:0">
+  <div class="bar">
+    <div class="brand"><a class="logo" href="index.html">Star<b>ling</b></a><span class="kick">Open-source momentum</span></div>
+    <div class="clock" id="clock">—</div>
+  </div>
+</div>
+<div class="ticker" aria-hidden="true"><div class="tick-track" id="tickTrack"></div></div>
+
+<div class="wrap">
+  <nav class="views" aria-label="Views">
+    <a href="index.html">Board</a>
+    <a href="map.html">Map</a>
+    <a href="heatmap.html">Heatmap</a>
+    <a href="compare.html" aria-current="page">Compare</a>
+    <span class="spacer"></span>
+    <a class="about" href="about.html">How it works</a>
+  </nav>
+
+  <main>
+  <div class="strip">
+    <div class="lede">
+      <h1>Drill in &amp; compare</h1>
+      <p>Open any repo for the full read. <b>Pin</b> up to four to overlay their growth on one chart — normalized so a small repo and a huge one line up.</p>
+    </div>
+    <div class="seg" role="tablist" aria-label="Trend window">
+      <button role="tab" aria-selected="true" data-win="day" aria-controls="desk">Today <span class="d">24H</span></button>
+      <button role="tab" aria-selected="false" data-win="week" aria-controls="desk">Week <span class="d">7D</span></button>
+      <button role="tab" aria-selected="false" data-win="month" aria-controls="desk">Month <span class="d">30D</span></button>
+    </div>
+  </div>
+
+  <div class="desk" id="desk" role="tabpanel" aria-label="Repository comparison">
+    <aside class="panel rail" id="rail" aria-label="Repositories"><div class="state">Loading…</div></aside>
+    <div class="stack">
+      <section class="panel detail" id="detail"></section>
+      <section class="panel cmp">
+        <div class="cmp-h"><h3>Compare — normalized growth</h3><span class="hint" id="cmpCount"></span></div>
+        <p class="cmp-note">Curves plot % growth over each repo's full tracked history — the window tabs change the repo list, not the curves.</p>
+        <div class="cwrap"><div id="cmpChart"></div><div id="cmpTable"></div></div>
+      </section>
+    </div>
+  </div>
+  <p class="foot"><a href="about.html">How trending is calculated</a> · updated daily · pinned curves are % growth across each repo's tracked history</p>
+  </main>
+</div>
+
+<script src="assets/data.js"></script>
+<script>
+var S = Starling;
+var SERIES = ["#0B7A57", "#3B49DF", "#B0328C", "#9A6600"], MAX = 4;
+
+S.load().then(function () {
+  S.chrome();
+  var current = "day", reps = [], ranked = [], focused = 0, pinned = [];
+
+  function setWindow(win) {
+    current = win; reps = S.win(win).repos;
+    S.buildTicker(document.getElementById("tickTrack"), reps);
+    ranked = reps.map(function (r, i) { return i; }).sort(function (a, b) { return reps[b].pct_gain - reps[a].pct_gain; });
+    focused = ranked[0]; pinned = ranked.slice(0, 3);
+    if (!reps.length) { document.getElementById("rail").innerHTML = '<div class="state">Nothing cleared the ' + S.WSUB[win] + ' bar.</div>'; document.getElementById("detail").innerHTML = ""; document.getElementById("cmpChart").innerHTML = ""; document.getElementById("cmpTable").innerHTML = ""; document.getElementById("cmpCount").textContent = ""; return; }
+    renderRail(); renderDetail(); renderCompare();
+  }
+  var scOf = function (i) { return SERIES[pinned.indexOf(i)] || null; };
+
+  function renderRail() {
+    var rail = document.getElementById("rail");
+    rail.innerHTML = ranked.map(function (i, k) {
+      var r = reps[i], on = pinned.indexOf(i) >= 0, sc = scOf(i);
+      return '<div class="row ' + (i === focused ? "focus" : "") + '" data-i="' + i + '">' +
+        '<span class="rk">' + String(k + 1).padStart(2, "0") + '</span>' +
+        '<button class="open" data-open="' + i + '"><b>' + S.esc(r.name) + '</b><span class="l"><span class="dot" style="background:' + S.langColor(r.language) + '"></span>' + S.esc(r.language || "—") + ' · +' + S.fmt(r.abs_gain) + '★</span></button>' +
+        '<span class="pv">▲' + S.pctOf(r.pct_gain) + '%</span>' +
+        '<button class="pin ' + (on ? "on" : "") + '" data-pin="' + i + '" style="' + (on ? "--sc:" + sc : "") + '" aria-pressed="' + on + '" aria-label="' + (on ? "Unpin " : "Pin ") + S.esc(r.name) + '"' + ((!on && pinned.length >= MAX) ? " disabled" : "") + '>' + (on ? "✓" : "+") + '</button></div>';
+    }).join("");
+    rail.querySelectorAll("[data-open]").forEach(function (b) { b.addEventListener("click", function () { focused = +b.dataset.open; renderDetail(); markFocus(); }); });
+    rail.querySelectorAll("[data-pin]").forEach(function (b) { b.addEventListener("click", function () { togglePin(+b.dataset.pin); }); });
+  }
+  function markFocus() { document.querySelectorAll("#rail .row").forEach(function (el) { el.classList.toggle("focus", +el.dataset.i === focused); }); }
+  function togglePin(i) {
+    var at = pinned.indexOf(i); if (at >= 0) pinned.splice(at, 1); else if (pinned.length < MAX) pinned.push(i);
+    renderRail(); renderCompare();
+    var again = document.querySelector('#rail .pin[data-pin="' + i + '"]'); // renderRail rebuilt the rail; put keyboard focus back
+    if (again) again.focus();
+  }
+
+  function renderDetail() {
+    var r = reps[focused], c = S.langColor(r.language);
+    var sim = reps.map(function (x, i) { return { x: x, i: i }; }).filter(function (o) {
+      return o.i !== focused && (o.x.language === r.language || (o.x.topics || []).some(function (t) { return (r.topics || []).indexOf(t) >= 0; }));
+    }).slice(0, 4);
+    var topics = (r.topics || []).slice(0, 4).map(function (t) { return '<span class="chip">' + S.esc(t) + '</span>'; }).join("");
+    document.getElementById("detail").innerHTML =
+      '<div class="eyebrow-row"><span class="eyebrow">Repository detail</span><a class="ghlink" href="' + S.repoUrl(r) + '" target="_blank" rel="noopener">View on GitHub ↗</a></div>' +
+      '<a class="nm" href="' + S.repoUrl(r) + '" target="_blank" rel="noopener"><span class="o">' + S.esc(r.owner) + '/</span>' + S.esc(r.name) + '</a>' +
+      '<p class="sum">' + S.esc(r.summary || r.description || "Summary pending.") + '</p>' +
+      '<div class="chips"><span class="lang"><span class="dot" style="background:' + c + '"></span>' + S.esc(r.language || "—") + '</span>' + topics + '</div>' +
+      '<div class="stats"><div class="stat"><div class="k">Velocity</div><div class="v up">▲' + S.pctOf(r.pct_gain) + '%</div></div>' +
+      '<div class="stat"><div class="k">Added</div><div class="v am">+' + S.fmt(r.abs_gain) + '</div></div>' +
+      '<div class="stat"><div class="k">Total stars</div><div class="v">' + S.fmt(r.stars) + '</div></div></div>' +
+      '<div class="chart">' + S.sparkline(r.spark, { w: 640, h: 150, pad: 3 }) + '</div>' +
+      (sim.length ? '<div class="similar"><div class="k">Similar movers</div><div class="chips">' + sim.map(function (o) { return '<button class="chip" data-open="' + o.i + '">' + S.esc(o.x.name) + ' ▲' + S.pctOf(o.x.pct_gain) + '%</button>'; }).join("") + '</div></div>' : "");
+    document.querySelectorAll("#detail [data-open]").forEach(function (b) { b.addEventListener("click", function () { focused = +b.dataset.open; renderDetail(); markFocus(); }); });
+  }
+
+  function growth(pts) { if (!pts || !pts.length) return [{ x: 0, y: 0 }]; var v0 = pts[0] || 1; return pts.map(function (v, i) { return { x: i / (pts.length - 1 || 1), y: v / v0 - 1 }; }); }
+  function renderCompare() {
+    document.getElementById("cmpCount").textContent = pinned.length + "/" + MAX + " pinned";
+    var chart = document.getElementById("cmpChart"), table = document.getElementById("cmpTable");
+    if (!pinned.length) { chart.innerHTML = '<div class="empty">Pin repos from the list to compare their growth curves.</div>'; table.innerHTML = ""; return; }
+    var series = pinned.map(function (i, k) { return { i: i, r: reps[i], col: SERIES[k], g: growth(reps[i].spark) }; });
+    var maxY = Math.max.apply(null, series.reduce(function (a, s) { return a.concat(s.g.map(function (p) { return p.y; })); }, [0.05]));
+    var W = 560, H = 260, mL = 40, mR = 54, mT = 14, mB = 26;
+    var xS = function (x) { return mL + x * (W - mL - mR); }, yS = function (y) { return (H - mB) - (y / maxY) * (H - mB - mT); };
+    var yt = [0, .25, .5, .75, 1].map(function (f) { return +(f * maxY).toFixed(2); });
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Normalized growth comparison">';
+    svg += '<g class="grid">' + yt.map(function (v) { return '<line x1="' + mL + '" y1="' + yS(v).toFixed(1) + '" x2="' + (W - mR) + '" y2="' + yS(v).toFixed(1) + '"/>'; }).join("") + '</g>';
+    svg += '<g class="axis" fill="var(--faint)">' + yt.map(function (v) { return '<text x="' + (mL - 6) + '" y="' + (yS(v) + 3).toFixed(1) + '" text-anchor="end">+' + Math.round(v * 100) + '%</text>'; }).join("");
+    svg += '<text x="' + mL + '" y="' + (H - 4) + '">start</text><text x="' + (W - mR) + '" y="' + (H - 4) + '" text-anchor="end">now</text></g>';
+    series.forEach(function (s) {
+      var d = "M" + xS(s.g[0].x).toFixed(1) + " " + yS(s.g[0].y).toFixed(1);
+      for (var j = 1; j < s.g.length; j++) d += " L" + xS(s.g[j].x).toFixed(1) + " " + yS(s.g[j].y).toFixed(1);
+      var last = s.g[s.g.length - 1], ex = xS(last.x), ey = yS(last.y);
+      svg += '<path d="' + d + '" fill="none" stroke="' + s.col + '" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + ex.toFixed(1) + '" cy="' + ey.toFixed(1) + '" r="3" fill="' + s.col + '"/><text x="' + (ex + 6).toFixed(1) + '" y="' + (ey + 3).toFixed(1) + '" fill="' + s.col + '">+' + Math.round(last.y * 100) + '%</text>';
+    });
+    svg += '</svg>'; chart.innerHTML = svg;
+    table.innerHTML = '<table><thead><tr><th>Repo</th><th>Vel.</th><th>Added</th><th>Total</th></tr></thead><tbody>' +
+      series.map(function (s) { return '<tr><td><span class="sd" style="background:' + s.col + '"></span><a href="' + S.repoUrl(s.r) + '" target="_blank" rel="noopener"><b>' + S.esc(s.r.name) + '</b></a></td><td style="color:var(--up)">▲' + S.pctOf(s.r.pct_gain) + '%</td><td>+' + S.fmt(s.r.abs_gain) + '</td><td>' + S.fmt(s.r.stars) + '</td></tr>'; }).join("") + '</tbody></table>';
+  }
+
+  document.querySelectorAll(".seg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (b.dataset.win === current) return;
+      document.querySelectorAll(".seg button").forEach(function (x) { x.setAttribute("aria-selected", x === b); });
+      setWindow(b.dataset.win);
+    });
+  });
+  setWindow(current);
+}).catch(function (err) { S.fail("rail", err); });
+</script>
+</body>
+</html>

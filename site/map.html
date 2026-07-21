@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starling — Map</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%233B49DF' d='M8 1l2.1 4.3 4.7.7-3.4 3.3.8 4.7L8 11.8 3.8 14l.8-4.7L1.2 6l4.7-.7z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<style>
+  .tape{display:flex; flex-wrap:wrap; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--panel); margin:22px 0 4px; box-shadow:var(--shadow);}
+  .tape .kpi{flex:1 1 auto; min-width:150px; padding:13px 18px; border-right:1px solid var(--line-2);}
+  .tape .kpi:last-child{border-right:0;}
+  .tape .kpi .k{font-family:var(--mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);}
+  .tape .kpi .v{font-family:var(--disp); font-weight:600; font-size:19px; letter-spacing:-.01em; margin-top:3px; font-variant-numeric:tabular-nums;}
+  .tape .kpi .v small{font-family:var(--mono); font-weight:400; font-size:11px; color:var(--muted);}
+  .tape .kpi .v .up{color:var(--up);}
+
+  .deck{display:grid; grid-template-columns:1fr 340px; gap:18px; align-items:start;}
+  .card-h{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:15px 18px 8px;}
+  .card-h h3{font-family:var(--disp); font-weight:600; font-size:15px; margin:0; letter-spacing:-.01em;}
+  .card-h .hint{font-family:var(--mono); font-size:10px; color:var(--faint); letter-spacing:.04em; text-transform:uppercase;}
+
+  .plot{padding:4px 12px 12px;} .plot svg{display:block; width:100%; height:auto;}
+  .axis line{stroke:var(--line);} .grid line{stroke:var(--line-2);}
+  .axis text{fill:var(--faint); font-family:var(--mono); font-size:10px;}
+  .axis-title{fill:var(--muted); font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase;}
+  .qline{stroke:var(--line); stroke-dasharray:3 4;}
+  .qlabel{fill:var(--faint); font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;}
+  circle.bub{cursor:pointer; transition:stroke-width .1s; stroke-width:1.5;}
+  circle.bub:hover, circle.bub.on{stroke-width:3;}
+
+  .lb{padding:6px 8px 10px; max-height:560px; overflow:auto;}
+  .lb .row{display:grid; grid-template-columns:26px 1fr auto; gap:10px; align-items:center; padding:9px 10px; border-radius:9px; cursor:pointer; text-align:left; width:100%; text-decoration:none; color:inherit;}
+  .lb .row:hover, .lb .row.on{background:var(--paper);}
+  .lb .row:hover .nm b{color:var(--accent);}
+  .lb .row:focus-visible{outline:2px solid var(--accent); outline-offset:-2px;}
+  .lb .rk{font-family:var(--mono); font-size:12px; color:var(--faint); font-variant-numeric:tabular-nums;}
+  .lb .nm{min-width:0;}
+  .lb .nm b{font-family:var(--disp); font-weight:600; font-size:13.5px; letter-spacing:-.01em; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .lb .nm .l{font-family:var(--mono); font-size:10px; color:var(--muted); display:flex; align-items:center; gap:5px; margin-top:1px;}
+  .lb .pct{font-family:var(--disp); font-weight:700; font-size:15px; color:var(--up); font-variant-numeric:tabular-nums;}
+
+  @media (max-width:860px){ .deck{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap" style="padding-bottom:0">
+  <div class="bar">
+    <div class="brand"><a class="logo" href="index.html">Star<b>ling</b></a><span class="kick">Open-source momentum</span></div>
+    <div class="clock" id="clock">—</div>
+  </div>
+</div>
+<div class="ticker" aria-hidden="true"><div class="tick-track" id="tickTrack"></div></div>
+
+<div class="wrap">
+  <nav class="views" aria-label="Views">
+    <a href="index.html">Board</a>
+    <a href="map.html" aria-current="page">Map</a>
+    <a href="heatmap.html">Heatmap</a>
+    <a href="compare.html">Compare</a>
+    <span class="spacer"></span>
+    <a class="about" href="about.html">How it works</a>
+  </nav>
+
+  <main>
+  <div class="strip">
+    <div class="lede">
+      <h1>The market at a glance</h1>
+      <p>Every mover plotted by <b>velocity</b> (% gained) against <b>volume</b> (total stars). Hover a point to sync it with the board — click to jump to its row.</p>
+    </div>
+    <div class="seg" role="tablist" aria-label="Trend window">
+      <button role="tab" aria-selected="true" data-win="day" aria-controls="mapPanel">Today <span class="d">24H</span></button>
+      <button role="tab" aria-selected="false" data-win="week" aria-controls="mapPanel">Week <span class="d">7D</span></button>
+      <button role="tab" aria-selected="false" data-win="month" aria-controls="mapPanel">Month <span class="d">30D</span></button>
+    </div>
+  </div>
+
+  <div id="mapPanel" role="tabpanel" aria-label="Movers map and leaderboard">
+  <div class="tape" id="tape"></div>
+  <div class="deck">
+    <section class="panel"><div class="card-h"><h3>Movers map</h3><span class="hint">velocity × volume · bubble = stars added</span></div><div class="plot" id="plot"></div></section>
+    <aside class="panel"><div class="card-h"><h3>Leaderboard</h3><span class="hint">by velocity</span></div><div class="lb" id="lb"></div></aside>
+  </div>
+  <div class="legend" id="legend"></div>
+  </div>
+  <p class="foot"><a href="about.html">How trending is calculated</a> · updated daily · summaries by Gemini</p>
+  </main>
+</div>
+<div class="tt" id="tt" role="status" aria-live="polite"></div>
+
+<script src="assets/data.js"></script>
+<script>
+var S = Starling;
+S.load().then(function () {
+  S.chrome();
+  var current = "day", tt = document.getElementById("tt");
+
+  function logTicks(min, max) {
+    var t = [];
+    for (var e = Math.floor(Math.log10(min)); e <= Math.ceil(Math.log10(max)); e++) {
+      [1, 3].forEach(function (m) { var v = m * Math.pow(10, e); if (v >= min * 0.999 && v <= max * 1.001) t.push(v); });
+    }
+    return t;
+  }
+  var tk = function (n) { return n >= 1000 ? (n / 1000) + "k" : "" + n; };
+  var median = function (a) { var s = a.slice().sort(function (x, y) { return x - y; }); return s[Math.floor(s.length / 2)]; };
+
+  function render(win) {
+    var w = S.win(win), reps = w.repos;
+    S.buildTicker(document.getElementById("tickTrack"), reps);
+    var plot = document.getElementById("plot"), lb = document.getElementById("lb"), tape = document.getElementById("tape");
+    if (!reps.length) { plot.innerHTML = '<div class="state">Nothing cleared the ' + S.WSUB[win] + ' bar.</div>'; lb.innerHTML = ""; tape.innerHTML = ""; return; }
+
+    // summary tape
+    var added = reps.reduce(function (s, r) { return s + (r.abs_gain || 0); }, 0);
+    var byLang = {}; reps.forEach(function (r) { var L = r.language || "—"; byLang[L] = (byLang[L] || 0) + (r.abs_gain || 0); });
+    var hot = Object.keys(byLang).sort(function (a, b) { return byLang[b] - byLang[a]; })[0];
+    var top = reps.slice().sort(function (a, b) { return b.pct_gain - a.pct_gain; })[0];
+    tape.innerHTML =
+      '<div class="kpi"><div class="k">Tracked · ' + S.WLABEL[win] + '</div><div class="v">' + S.fmt(w.count) + ' <small>repos</small></div></div>' +
+      '<div class="kpi"><div class="k">Stars added</div><div class="v"><span class="up">+' + S.fmt(added) + '</span> <small>★ this window</small></div></div>' +
+      '<div class="kpi"><div class="k">Hottest language</div><div class="v"><span class="dot" style="background:' + S.langColor(hot) + ';width:11px;height:11px;vertical-align:0"></span> ' + S.esc(hot) + '</div></div>' +
+      '<div class="kpi"><div class="k">Top mover</div><div class="v">' + S.esc(top.name) + ' <small>▲' + S.pctOf(top.pct_gain) + '%</small></div></div>';
+
+    // domains
+    var starVals = reps.map(function (r) { return Math.max(r.stars, 1); }), pctVals = reps.map(function (r) { return r.pct_gain || 0; });
+    var xmin = Math.pow(10, Math.floor(Math.log10(Math.max(Math.min.apply(null, starVals), 10))));
+    var xmax = Math.pow(10, Math.ceil(Math.log10(Math.max.apply(null, starVals))));
+    if (xmax <= xmin) xmax = xmin * 10;
+    var ymax = (Math.max.apply(null, pctVals) * 1.08) || 0.1;
+    var maxAbs = Math.max.apply(null, reps.map(function (r) { return r.abs_gain || 0; }).concat([1]));
+    var xDiv = median(starVals), yDiv = median(pctVals);
+
+    var W = 720, H = 470, mL = 46, mR = 16, mT = 18, mB = 36, pL = mL, pR = W - mR, pB = H - mB, pT = mT;
+    var lg = function (v) { return Math.log10(v); };
+    var xS = function (s) { return pL + (lg(Math.max(s, xmin)) - lg(xmin)) / (lg(xmax) - lg(xmin)) * (pR - pL); };
+    var yS = function (p) { return pB - (p / ymax) * (pB - pT); };
+    var rS = function (a) { return 4 + Math.sqrt((a || 0) / maxAbs) * 22; };
+
+    var xt = logTicks(xmin, xmax), yt = [0, .25, .5, .75, 1].map(function (f) { return f * ymax; });
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Velocity versus total stars">';
+    svg += '<g class="grid">' + yt.map(function (p) { return '<line x1="' + pL + '" y1="' + yS(p).toFixed(1) + '" x2="' + pR + '" y2="' + yS(p).toFixed(1) + '"/>'; }).join("") + '</g>';
+    svg += '<g class="axis"><line x1="' + pL + '" y1="' + pT + '" x2="' + pL + '" y2="' + pB + '"/><line x1="' + pL + '" y1="' + pB + '" x2="' + pR + '" y2="' + pB + '"/>';
+    svg += yt.map(function (p) { return '<text x="' + (pL - 8) + '" y="' + (yS(p) + 3).toFixed(1) + '" text-anchor="end">' + Math.round(p * 100) + '%</text>'; }).join("");
+    svg += xt.map(function (s) { return '<text x="' + xS(s).toFixed(1) + '" y="' + (pB + 16) + '" text-anchor="middle">' + tk(s) + '</text>'; }).join("");
+    svg += '<text class="axis-title" x="' + pL + '" y="' + (pT - 6) + '">velocity ↑</text><text class="axis-title" x="' + pR + '" y="' + (H - 4) + '" text-anchor="end">total stars →</text></g>';
+    svg += '<line class="qline" x1="' + xS(xDiv).toFixed(1) + '" y1="' + pT + '" x2="' + xS(xDiv).toFixed(1) + '" y2="' + pB + '"/>';
+    svg += '<line class="qline" x1="' + pL + '" y1="' + yS(yDiv).toFixed(1) + '" x2="' + pR + '" y2="' + yS(yDiv).toFixed(1) + '"/>';
+    svg += '<text class="qlabel" x="' + (pL + 8) + '" y="' + (pT + 14) + '">rising stars</text><text class="qlabel" x="' + (pR - 8) + '" y="' + (pT + 14) + '" text-anchor="end">breakouts</text>';
+    svg += '<text class="qlabel" x="' + (pL + 8) + '" y="' + (pB - 8) + '">simmering</text><text class="qlabel" x="' + (pR - 8) + '" y="' + (pB - 8) + '" text-anchor="end">blue chips</text>';
+    var order = reps.map(function (r, i) { return i; }).sort(function (a, b) { return (reps[b].abs_gain || 0) - (reps[a].abs_gain || 0); });
+    svg += order.map(function (i) { var r = reps[i], c = S.langColor(r.language), ct = S.readable(c);
+      return '<circle class="bub" data-i="' + i + '" cx="' + xS(r.stars).toFixed(1) + '" cy="' + yS(r.pct_gain).toFixed(1) + '" r="' + rS(r.abs_gain).toFixed(1) + '" fill="' + c + '" fill-opacity=".55" stroke="' + ct + '"/>'; }).join("");
+    svg += '</svg>';
+    plot.innerHTML = svg;
+
+    var ranked = reps.map(function (r, i) { return { r: r, i: i }; }).sort(function (a, b) { return b.r.pct_gain - a.r.pct_gain; });
+    lb.innerHTML = ranked.map(function (o, k) { var r = o.r, c = S.langColor(r.language);
+      return '<a class="row" href="' + S.repoUrl(r) + '" target="_blank" rel="noopener" data-i="' + o.i + '">' +
+        '<span class="rk">' + String(k + 1).padStart(2, "0") + '</span>' +
+        '<span class="nm"><b>' + S.esc(r.name) + '</b><span class="l"><span class="dot" style="background:' + c + '"></span>' + S.esc(r.language || "—") + ' · +' + S.fmt(r.abs_gain) + '★</span></span>' +
+        '<span class="pct">▲' + S.pctOf(r.pct_gain) + '%</span></a>'; }).join("");
+
+    document.getElementById("legend").innerHTML =
+      '<span><i style="background:var(--up)"></i>velocity — % gained (Y)</span><span><i style="background:var(--amber)"></i>volume — total stars (X, log)</span><span>bubble area = stars added</span>';
+
+    // sync
+    var bubs = [].slice.call(plot.querySelectorAll("circle.bub")), rows = [].slice.call(lb.querySelectorAll(".row"));
+    function setOn(i, on) {
+      bubs.forEach(function (b) { b.classList.toggle("on", on && +b.dataset.i === i); });
+      rows.forEach(function (r) { r.classList.toggle("on", on && +r.dataset.i === i); });
+    }
+    function showTip(i, x, y) {
+      var r = reps[i];
+      tt.innerHTML = '<div class="nm">' + S.esc(r.owner) + '/' + S.esc(r.name) + '</div><span class="up">▲' + S.pctOf(r.pct_gain) + '% velocity</span> · <span class="am">+' + S.fmt(r.abs_gain) + '★</span><br><span class="mut">' + S.fmt(r.stars) + ' total · ' + S.esc(r.language || "—") + '</span>';
+      tt.classList.add("show");
+      var pad = 14, tx = x + pad, ty = y + pad;
+      if (tx + 260 > innerWidth) tx = x - tt.offsetWidth - pad;
+      if (ty + tt.offsetHeight > innerHeight) ty = y - tt.offsetHeight - pad;
+      tt.style.left = tx + "px"; tt.style.top = ty + "px";
+    }
+    var hideTip = function () { tt.classList.remove("show"); };
+    bubs.forEach(function (b) { var i = +b.dataset.i;
+      b.addEventListener("mousemove", function (e) { setOn(i, true); showTip(i, e.clientX, e.clientY); });
+      b.addEventListener("mouseleave", function () { // keep the highlight if a click just moved focus to this repo's row
+        hideTip(); var a = document.activeElement;
+        if (a && a.classList && a.classList.contains("row") && +a.dataset.i === i) return;
+        setOn(i, false);
+      });
+      b.addEventListener("click", function () {
+        var row = rows.filter(function (r) { return +r.dataset.i === i; })[0];
+        if (row) { row.scrollIntoView({ block: "nearest" }); row.focus({ preventScroll: true }); }
+      });
+    });
+    rows.forEach(function (row) { var i = +row.dataset.i;
+      row.addEventListener("mouseenter", function () { setOn(i, true); });
+      row.addEventListener("mouseleave", function () { setOn(i, false); });
+      row.addEventListener("focus", function () { setOn(i, true); });
+      row.addEventListener("blur", function () { setOn(i, false); });
+    });
+  }
+
+  document.querySelectorAll(".seg button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (b.dataset.win === current) return;
+      document.querySelectorAll(".seg button").forEach(function (x) { x.setAttribute("aria-selected", x === b); });
+      current = b.dataset.win; render(current);
+    });
+  });
+  render(current);
+}).catch(function (err) { S.fail("plot", err); });
+</script>
+</body>
+</html>

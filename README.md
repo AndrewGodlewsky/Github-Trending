@@ -87,8 +87,15 @@ Github-Trending/
 │   ├── alerts.py              # Discord failure alerts
 │   └── orchestrate.py         # Phase 8 · the daily runner (sequences all stages)
 │
-├── site/                      # ── the website (Phase 7) ──
-│   ├── index.html             # static page; fetches data/latest.json
+├── site/                      # ── the website (Phase 7) · every page fetches data/latest.json ──
+│   ├── index.html             # Board — ranked movers (the entry page)
+│   ├── map.html               # Map — velocity × total-stars scatter + synced leaderboard
+│   ├── heatmap.html           # Heatmap — language × window "sector rotation" matrix
+│   ├── compare.html           # Compare — drill into a repo, pin up to 4 on one growth chart
+│   ├── about.html             # methodology explainer ("how trending is calculated")
+│   ├── assets/
+│   │   ├── theme.css          # shared design tokens + chrome (light "Ticker" aesthetic)
+│   │   └── data.js            # shared `Starling` helpers: load, escape, format, ticker
 │   └── data/                  # generated (gitignored): latest.json + archive/YYYY-MM-DD.json
 │
 ├── tools/                     # ── one-off scripts & helpers ──
@@ -134,6 +141,7 @@ Github-Trending/
 | **Take it live, step by step** | [`docs/LAUNCH.html`](docs/LAUNCH.html) | interactive checklist |
 | **Set up hosting + scheduling** | [`docs/deploy.md`](docs/deploy.md) | markdown |
 | **Create the Discord alert webhook** | [`docs/discord-webhook.md`](docs/discord-webhook.md) | markdown |
+| **See what site QA found & changed (2026-07-20)** | [`QA-REPORT.md`](QA-REPORT.md) | markdown |
 | **See the design decisions & rationale** | `../.scratch/github-trending/` | see [Design rationale](#design-rationale) |
 
 ## Running it

@@ -23,7 +23,7 @@
 <div class="wrap">
   <div class="eyebrow">05 · Website</div>
   <h1>Showing it</h1>
-  <p class="lead">The website is deliberately the <strong>simplest possible thing</strong>: a single static page that reads one small data file. There's no server and no database behind it — the heavy machine work already happened on your PC.</p>
+  <p class="lead">The website is deliberately the <strong>simplest possible thing</strong>: a handful of static pages that all read one small data file. There's no server and no database behind it — the heavy machine work already happened on your PC.</p>
 
   <h2>The handoff file: <code>latest.json</code></h2>
   <p>Between the pipeline and the website sits one file — a contract both sides agree on. The pipeline writes it; the website reads it. It's small (about <strong>140 KB</strong>) and holds everything the page needs:</p>
@@ -42,8 +42,8 @@
     <div class="box accent"><div class="t">the website</div><div class="d">reads &amp; renders it</div></div>
   </div>
 
-  <h2>The page itself</h2>
-  <p>It's plain HTML, CSS, and a little JavaScript — <strong>no framework, no build step</strong>. When it loads, it fetches <code>latest.json</code> and draws the "momentum board": a ranked list per window, each repo showing its velocity, its summary, its language, and a little trajectory sparkline. Real GitHub avatars, light and dark themes, and it works on a phone.</p>
+  <h2>The pages themselves</h2>
+  <p>It's plain HTML, CSS, and a little JavaScript — <strong>no framework, no build step</strong>. Each page fetches <code>latest.json</code> and renders a view of it: the <strong>Board</strong> (ranked movers with velocity, summary, and a trajectory sparkline), the <strong>Map</strong> (velocity × total stars, synced to a leaderboard), the <strong>Heatmap</strong> (which language ecosystems are heating up per window), and <strong>Compare</strong> (pin repos to overlay their growth) — plus a plain-English methodology page. One light "market terminal" look, keyboard-friendly, and it works on a phone.</p>
 
   <div class="note why"><b>Why so simple?</b> Because the data is already computed. A static file loads instantly, costs nothing to host, can't be hacked (there's no server logic), and means your 2.6 GB of raw data never leaves your machine. Only the tiny result travels.</div>
 
