@@ -12,6 +12,11 @@
 <style>
   .desk{display:grid; grid-template-columns:320px 1fr; gap:18px; align-items:start;}
   .rail{padding:8px; max-height:660px; overflow:auto;}
+  .railsearch{position:sticky; top:-8px; z-index:2; margin:-8px -8px 6px; padding:8px; background:var(--panel); border-bottom:1px solid var(--line-2);}
+  .railsearch input{width:100%; border:1px solid var(--line); background:var(--paper); border-radius:8px; padding:7px 10px; font-family:var(--mono); font-size:11.5px; color:var(--ink);}
+  .railsearch input::placeholder{color:var(--faint);}
+  .railsearch input:focus-visible{outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent);}
+  .rail .row.hid, .rail .state.hid{display:none;} /* out-ranks the later `.rail .row{display:grid}` rule */
   .rail .row{display:grid; grid-template-columns:24px 1fr auto 30px; gap:9px; align-items:center; padding:9px 8px; border-radius:9px; width:100%;}
   .rail .row.focus{background:var(--paper); box-shadow:inset 3px 0 0 var(--accent);}
   .rail .rk{font-family:var(--mono); font-size:11px; color:var(--faint); font-variant-numeric:tabular-nums;}
@@ -101,7 +106,10 @@
   </div>
 
   <div class="desk" id="desk" role="tabpanel" aria-label="Repository comparison">
-    <aside class="panel rail" id="rail" aria-label="Repositories"><div class="state">Loading…</div></aside>
+    <aside class="panel rail" id="rail" aria-label="Repositories">
+      <div class="railsearch"><input id="railQ" type="search" placeholder="Search name, language, topic…" aria-label="Search repositories" autocomplete="off"></div>
+      <div id="railList"><div class="state">Loading…</div></div>
+    </aside>
     <div class="stack">
       <section class="panel detail" id="detail"></section>
       <section class="panel cmp">
@@ -129,23 +137,36 @@ S.load().then(function () {
     S.buildTicker(document.getElementById("tickTrack"), reps);
     ranked = reps.map(function (r, i) { return i; }).sort(function (a, b) { return reps[b].pct_gain - reps[a].pct_gain; });
     focused = ranked[0]; pinned = ranked.slice(0, 3);
-    if (!reps.length) { document.getElementById("rail").innerHTML = '<div class="state">Nothing cleared the ' + S.WSUB[win] + ' bar.</div>'; document.getElementById("detail").innerHTML = ""; document.getElementById("cmpChart").innerHTML = ""; document.getElementById("cmpTable").innerHTML = ""; document.getElementById("cmpCount").textContent = ""; return; }
+    if (!reps.length) { document.getElementById("railList").innerHTML = '<div class="state">Nothing cleared the ' + S.WSUB[win] + ' bar.</div>'; document.getElementById("detail").innerHTML = ""; document.getElementById("cmpChart").innerHTML = ""; document.getElementById("cmpTable").innerHTML = ""; document.getElementById("cmpCount").textContent = ""; return; }
     renderRail(); renderDetail(); renderCompare();
   }
   var scOf = function (i) { return SERIES[pinned.indexOf(i)] || null; };
 
+  function applySearch() {
+    var q = (document.getElementById("railQ").value || "").trim().toLowerCase(); // input is the single source of truth
+    var n = 0;
+    document.querySelectorAll("#railList .row").forEach(function (el) {
+      var r = reps[+el.dataset.i];
+      var hay = (r.owner + "/" + r.name + " " + (r.language || "") + " " + (r.topics || []).join(" ")).toLowerCase();
+      var ok = !q || hay.indexOf(q) >= 0;
+      el.classList.toggle("hid", !ok); if (ok) n++;
+    });
+    var none = document.getElementById("railNone");
+    if (none) none.classList.toggle("hid", n > 0);
+  }
   function renderRail() {
     var rail = document.getElementById("rail");
-    rail.innerHTML = ranked.map(function (i, k) {
+    document.getElementById("railList").innerHTML = ranked.map(function (i, k) {
       var r = reps[i], on = pinned.indexOf(i) >= 0, sc = scOf(i);
       return '<div class="row ' + (i === focused ? "focus" : "") + '" data-i="' + i + '">' +
         '<span class="rk">' + String(k + 1).padStart(2, "0") + '</span>' +
         '<button class="open" data-open="' + i + '"><b>' + S.esc(r.name) + '</b><span class="l"><span class="dot" style="background:' + S.langColor(r.language) + '"></span>' + S.esc(r.language || "—") + ' · +' + S.fmt(r.abs_gain) + '★</span></button>' +
         '<span class="pv">▲' + S.pctOf(r.pct_gain) + '%</span>' +
         '<button class="pin ' + (on ? "on" : "") + '" data-pin="' + i + '" style="' + (on ? "--sc:" + sc : "") + '" aria-pressed="' + on + '" aria-label="' + (on ? "Unpin " : "Pin ") + S.esc(r.name) + '"' + ((!on && pinned.length >= MAX) ? " disabled" : "") + '>' + (on ? "✓" : "+") + '</button></div>';
-    }).join("");
+    }).join("") + '<div class="state hid" id="railNone">No repos match your search.</div>';
     rail.querySelectorAll("[data-open]").forEach(function (b) { b.addEventListener("click", function () { focused = +b.dataset.open; renderDetail(); markFocus(); }); });
     rail.querySelectorAll("[data-pin]").forEach(function (b) { b.addEventListener("click", function () { togglePin(+b.dataset.pin); }); });
+    applySearch(); // keep the active query applied across re-renders (pins, window switches)
   }
   function markFocus() { document.querySelectorAll("#rail .row").forEach(function (el) { el.classList.toggle("focus", +el.dataset.i === focused); }); }
   function togglePin(i) {
@@ -206,6 +227,7 @@ S.load().then(function () {
       setWindow(b.dataset.win);
     });
   });
+  document.getElementById("railQ").addEventListener("input", applySearch);
   setWindow(current);
 }).catch(function (err) { S.fail("rail", err); });
 </script>
